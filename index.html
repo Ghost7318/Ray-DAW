@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ray - Creative DAW (Pro Edition v8 - Fixed)</title>
+    <title>Ray - Creative DAW (Pro Edition v9 - MIDI Export Preview)</title>
     <style>
         :root {
             --bg-main: #fff0f5; 
@@ -55,6 +55,12 @@
         button.active {
             background-color: #ff1493;
             box-shadow: inset 0 2px 5px rgba(0,0,0,0.3);
+        }
+        button.export-btn {
+            background-color: #4caf50;
+        }
+        button.export-btn:hover {
+            background-color: #45a049;
         }
 
         input, select { border: 1px solid #ffb6c1; border-radius: 4px; padding: 2px; color: var(--text-dark); }
@@ -188,6 +194,9 @@
                     <option value="48">1/48 (十六分三連符)</option>
                 </select>
             </div>
+            <div class="control-group">
+                <button id="btn-export" class="export-btn">🎵 MIDI出力</button>
+            </div>
             <div class="control-group" style="border: none;">
                 <span style="color:#aaa;">[Ctrl+Z]:戻る [Ctrl+C/V]:コピペ [Backspace]:消去</span>
             </div>
@@ -280,7 +289,7 @@
                 } else if (noteName === 'Kick' || noteName === 'C3' || noteName === 'D3' || noteName === 'E3' || noteName === 'F2') { 
                     const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.12);
                     gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
                     osc.start(now); osc.stop(now + 0.12);
                 } else if (noteName === 'Hi-Hat' || noteName === 'C4' || noteName === 'D4' || noteName === 'E4') {
@@ -740,7 +749,6 @@
             if (e.target !== gridEl) return;
 
             const rect = gridEl.getBoundingClientRect();
-            // ★重要：内部絶対X座標（スクロール考慮）を正しく計算
             const startGridX = (e.clientX - rect.left) / zoomScale;
             const startGridY = e.clientY - rect.top;
             const parentBox = boxRegistry[currentSelectedBoxId];
@@ -799,13 +807,11 @@
                     const currentGridX = (me.clientX - currentRect.left) / zoomScale;
                     const currentGridY = me.clientY - currentRect.top;
 
-                    // ズームスケールに基づいた内部座標系での矩形作成
                     const x = Math.min(startGridX, currentGridX);
                     const y = Math.min(startGridY, currentGridY);
                     const w = Math.abs(startGridX - currentGridX);
                     const h = Math.abs(startGridY - currentGridY);
 
-                    // 画面表示用にスケールを戻して適用
                     marquee.style.left = `${x * zoomScale}px`; marquee.style.top = `${y}px`;
                     marquee.style.width = `${w * zoomScale}px`; marquee.style.height = `${h}px`;
 
@@ -999,6 +1005,149 @@
             requestAnimationFrame(playLoop);
         }
 
+        // ==========================================
+        // 🛠️ MIDI EXPORT SYSTEM (バイナリ自動生成)
+        // ==========================================
+        function dvWriteStr(dv, offset, str) {
+            for (let i = 0; i < str.length; i++) {
+                dv.setUint8(offset + i, str.charCodeAt(i));
+            }
+            return offset + str.length;
+        }
+
+        function writeVarInt(bytes, val) {
+            let buffer = [];
+            buffer.push(val & 0x7F);
+            while (val >> 7 > 0) {
+                val >>>= 7;
+                buffer.push((val & 0x7F) | 0x80);
+            }
+            buffer.reverse().forEach(b => bytes.push(b));
+        }
+
+        function getMidiNoteNumber(part, yValue) {
+            if (part === 'drum') {
+                const idx = Math.floor(yValue / 40);
+                // GM標準ドラムマッピング配列 (36: Kick, 38: Snare, 42: CloseHat, 46: OpenHat)
+                const mapping = [46, 42, 38, 36]; 
+                return mapping[idx] || 36;
+            } else {
+                const idx = Math.floor(yValue / 20);
+                // freqMap基準 (C4=60, B4=71...)。1つ下がるごとにMIDIノート番号が1下がる
+                return 71 - idx;
+            }
+        }
+
+        function exportToMidiFile() {
+            const ticksPerBeat = 480; 
+            const bpm = parseFloat(document.getElementById('tempo').value) || 120;
+            
+            const parts = ['drum', 'melody', 'chord', 'bass'];
+            let tracksData = [];
+
+            // 各トラックのイベント収集
+            parts.forEach((part, trackIdx) => {
+                let midiEvents = [];
+                const ch = (part === 'drum') ? 9 : trackIdx; // ドラムはCh 10 (インデックス9)
+
+                Object.values(boxRegistry).forEach(box => {
+                    if (box.part !== part) return;
+                    box.notes.forEach(note => {
+                        const absXStart = box.x + note.x;
+                        const absXEnd = absXStart + note.w;
+
+                        // 80ピクセル = 1拍 (四分音符) = 480 ticks
+                        const startTick = Math.round((absXStart / 80) * ticksPerBeat);
+                        const endTick = Math.round((absXEnd / 80) * ticksPerBeat);
+                        const pitch = getMidiNoteNumber(part, note.y);
+
+                        midiEvents.push({ tick: startTick, type: 0x90, note: pitch, vel: 100 }); // Note On
+                        midiEvents.push({ tick: endTick, type: 0x80, note: pitch, vel: 0 });   // Note Off
+                    });
+                });
+
+                if (midiEvents.length === 0 && trackIdx > 0) return; // 空トラックはスキップ
+
+                // 時間軸でソート
+                midiEvents.sort((a, b) => a.tick - b.tick);
+
+                let trackBytes = [];
+                let lastTick = 0;
+
+                // テンポ設定・トラック名メタデータを最初のみ挿入
+                if (trackIdx === 0) {
+                    // テンポトラック名
+                    trackBytes.push(0x00, 0xFF, 0x03, 0x04, 0x4d, 0x41, 0x49, 0x4e); 
+                    // テンポ設定 (メタイベント)
+                    const microsecondsPerBeat = Math.round(60000000 / bpm);
+                    trackBytes.push(0x00, 0xFF, 0x51, 0x03);
+                    trackBytes.push((microsecondsPerBeat >> 16) & 0xFF);
+                    trackBytes.push((microsecondsPerBeat >> 8) & 0xFF);
+                    trackBytes.push(microsecondsPerBeat & 0xFF);
+                }
+
+                // トラック名付与
+                const tName = part.toUpperCase();
+                writeVarInt(trackBytes, 0);
+                trackBytes.push(0xFF, 0x03, tName.length);
+                for(let i=0; i<tName.length; i++) trackBytes.push(tName.charCodeAt(i));
+
+                // デルタタイムを計算しながらバイナリ配列化
+                midiEvents.forEach(ev => {
+                    let delta = ev.tick - lastTick;
+                    if (delta < 0) delta = 0;
+                    writeVarInt(trackBytes, delta);
+                    trackBytes.push(ev.type | ch);
+                    trackBytes.push(ev.note);
+                    trackBytes.push(ev.vel);
+                    lastTick = ev.tick;
+                });
+
+                // トラック終端メタ
+                writeVarInt(trackBytes, 0);
+                trackBytes.push(0xFF, 0x2F, 0x00);
+
+                tracksData.push(trackBytes);
+            });
+
+            // MIDIヘッダーとトラックを合算してArrayBufferを作成
+            const numTracks = tracksData.length;
+            let totalSize = 14 + (numTracks * 8);
+            tracksData.forEach(t => totalSize += t.length);
+
+            const buffer = new ArrayBuffer(totalSize);
+            const dv = new DataView(buffer);
+            let offset = 0;
+
+            // MThd
+            offset = dvWriteStr(dv, offset, "MThd");
+            dv.setUint32(offset, 6); offset += 4;
+            dv.setUint16(offset, 1); offset += 2; // Format 1 (複数トラック)
+            dv.setUint16(offset, numTracks); offset += 2;
+            dv.setUint16(offset, ticksPerBeat); offset += 2;
+
+            // MT rk
+            tracksData.forEach(tBytes => {
+                offset = dvWriteStr(dv, offset, "MTrk");
+                dv.setUint32(offset, tBytes.length); offset += 4;
+                tBytes.forEach(b => {
+                    dv.setUint8(offset, b);
+                    offset++;
+                });
+            });
+
+            // ファイルダウンロードトリガー
+            const blob = new Blob([buffer], { type: "audio/midi" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `Ray_Project_${bpm}BPM.mid`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
         window.addEventListener('keydown', (e) => {
             if(e.code === 'Space') { e.preventDefault(); togglePlay(); return; }
 
@@ -1051,7 +1200,6 @@
             }
         });
 
-        // ★ツール切り替え＆クラス付与の完全紐付け
         document.getElementById('tool-pencil').addEventListener('click', () => {
             currentTool = 'pencil';
             document.getElementById('tool-pencil').classList.add('active');
@@ -1066,7 +1214,6 @@
         });
 
         document.getElementById('btn-play').addEventListener('click', togglePlay);
-        // ★ストップ時に再生フラグを折り、位置を「0」に戻して画面を更新
         document.getElementById('btn-stop').addEventListener('click', () => { 
             isPlaying = false; 
             playX = 0; 
@@ -1074,6 +1221,9 @@
             updatePlayheadUI(); 
             document.getElementById('btn-play').innerText = "▶ Play [Space]"; 
         });
+
+        // MIDIエクスポートボタン紐付け
+        document.getElementById('btn-export').addEventListener('click', exportToMidiFile);
 
         function handleShiftScroll(e, element) {
             if (e.shiftKey || e.deltaX !== 0) {
