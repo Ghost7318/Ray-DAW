@@ -15,6 +15,11 @@
             --white: #ffffff;
             --playhead-color: var(--accent-dark);
             --editor-height: 280px;
+            --note-color: var(--accent-pink);
+            --note-selected: var(--accent-dark);
+            --piano-white: #fffaf0;
+            --piano-black: #4a4a4a;
+            --grid-black-row: rgba(255, 105, 180, 0.05);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
@@ -113,7 +118,7 @@
             padding: 1px 6px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             overflow: hidden; cursor: grab; z-index: 5;
         }
-        .midi-box .box-title { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .midi-box .box-title { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }
         .midi-box.selected { border-color: var(--accent-dark); box-shadow: 0 0 8px var(--accent-pink); color: var(--white); background: var(--accent-pink); }
         .resizer-right {
             position: absolute; right: 0; top: 0; bottom: 0; width: 14px; cursor: ew-resize; background: rgba(0,0,0,0.04); z-index: 6;
@@ -152,9 +157,10 @@
         .key {
             height: 20px; border-bottom: 1px solid var(--bg-dark); font-size: 9px; font-weight: bold;
             display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; 
-            background: #fffaf0; color: #4a4a4a;
+            background: var(--piano-white); color: #4a4a4a;
+            transition: background-color 0.2s, color 0.2s;
         }
-        .key.black { background: #4a4a4a; color: var(--white); border-bottom: 1px solid #222; }
+        .key.black { background: var(--piano-black); color: var(--white); border-bottom: 1px solid #222; }
         .key.drum-key { background: var(--bg-main); border-bottom: 1px solid var(--bg-dark); color: var(--accent-pink); height: 40px; }
         
         .note-grid { position: relative; left: 0px; top: 0; background-color: #fff; width: max-content; height: max-content; }
@@ -163,7 +169,7 @@
         .grid-bg-layer { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index: 0; }
         .grid-row-bg { position: absolute; left:0; width:100%; border-bottom: 1px solid var(--bg-dark); }
         .grid-row-bg.white-row { background-color: #ffffff; }
-        .grid-row-bg.black-row { background-color: var(--bg-main); opacity: 0.5; } 
+        .grid-row-bg.black-row { background-color: var(--grid-black-row); } 
         
         .grid-lines-layer { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index: 1; }
 
@@ -172,17 +178,17 @@
         }
         #editor-playhead { height: 100%; left: 0; }
 
-        .grid-mask { position: absolute; top: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.06); pointer-events: none; z-index: 2; }
+        .grid-mask { position: absolute; top: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.05); pointer-events: none; z-index: 2; width: 0px; }
         .grid-mask.left { left: 0; }
         .grid-mask.right { right: 0; }
 
         /* ノート表示 */
         .piano-note {
-            position: absolute; height: 16px; background: var(--accent-pink);
-            border: 1px solid var(--white); border-radius: 3px; opacity: 0.9; z-index: 10; cursor: grab;
+            position: absolute; height: 16px; background: var(--note-color);
+            border: 1px solid var(--white); border-radius: 3px; opacity: 0.95; z-index: 10; cursor: grab;
         }
         .piano-note.selected {
-            background: var(--accent-dark); border-color: #fff; box-shadow: 0 0 6px var(--accent-dark);
+            background: var(--note-selected); border-color: #fff; box-shadow: 0 0 6px var(--note-selected);
         }
 
         footer { background: var(--white); border-top: 1px solid rgba(255,105,180,0.15); padding: 4px 10px; font-size: 10px; color: #888; text-align: center; }
@@ -244,11 +250,10 @@
                     </optgroup>
                 </select>
             </div>
-            <!-- テーマ切り替えを追加 -->
             <div class="control-group">
                 <label>🎨テーマ:</label>
                 <select id="theme-selector" onchange="changeTheme(this.value)">
-                    <option value="pink">マカロンピンク</option>
+                    <option value="pink" selected>マカロンピンク</option>
                     <option value="purple">ゆめかわパープル</option>
                     <option value="mint">ミントショコラ</option>
                     <option value="yellow">ハニーレモン</option>
@@ -335,19 +340,34 @@
     </div>
 
     <footer>
-        🔍 🎨テーマ切り替え機能を追加しました！お好みの可愛いカラーで作曲を楽しめます。
+        © Ray
     </footer>
 
     <script>
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // 可愛いテーマのカラーパレット定義
+        // 各テーマのカラーパレット定義
         const themes = {
-            pink: { main: '#fff0f5', dark: '#ffe4e1', accent: '#ff69b4', accentDark: '#ff1493' },
-            purple: { main: '#f5f0ff', dark: '#e6dbff', accent: '#b38eff', accentDark: '#8a4fff' },
-            mint: { main: '#f0fff8', dark: '#dffff0', accent: '#66cdaaa3', accentDark: '#2ebd92' },
-            yellow: { main: '#fffff0', dark: '#fff9d6', accent: '#ffd700', accentDark: '#ffa500' },
-            milk: { main: '#fafafa', dark: '#f5e6e8', accent: '#f0a8b9', accentDark: '#d1627c' }
+            pink: { 
+                main: '#fff0f5', dark: '#ffe4e1', accent: '#ff69b4', accentDark: '#ff1493',
+                note: '#ff69b4', noteSelected: '#ff1493', pianoWhite: '#fffaf0', pianoBlack: '#4a4a4a', gridBlackRow: 'rgba(255, 105, 180, 0.05)'
+            },
+            purple: { 
+                main: '#f5f0ff', dark: '#e6dbff', accent: '#b38eff', accentDark: '#8a4fff',
+                note: '#b38eff', noteSelected: '#8a4fff', pianoWhite: '#faf8ff', pianoBlack: '#3d2b5c', gridBlackRow: 'rgba(138, 79, 255, 0.05)'
+            },
+            mint: { 
+                main: '#f0fff8', dark: '#dffff0', accent: '#66cd9a', accentDark: '#2ebd92',
+                note: '#6f4e37', noteSelected: '#4a3121', pianoWhite: '#eff9f5', pianoBlack: '#4a3525', gridBlackRow: 'rgba(92, 64, 51, 0.06)'
+            },
+            yellow: { 
+                main: '#fffff0', dark: '#fff9d6', accent: '#ffd700', accentDark: '#ffa500',
+                note: '#ffd700', noteSelected: '#ffa500', pianoWhite: '#fffff8', pianoBlack: '#443300', gridBlackRow: 'rgba(255, 165, 0, 0.05)'
+            },
+            milk: { 
+                main: '#fafafa', dark: '#f5e6e8', accent: '#f0a8b9', accentDark: '#d1627c',
+                note: '#f0a8b9', noteSelected: '#d1627c', pianoWhite: '#fcfcfc', pianoBlack: '#4a3b3d', gridBlackRow: 'rgba(209, 98, 124, 0.05)'
+            }
         };
 
         function changeTheme(themeName) {
@@ -357,8 +377,12 @@
             root.style.setProperty('--bg-dark', t.dark);
             root.style.setProperty('--accent-pink', t.accent);
             root.style.setProperty('--accent-dark', t.accentDark);
+            root.style.setProperty('--note-color', t.note);
+            root.style.setProperty('--note-selected', t.noteSelected);
+            root.style.setProperty('--piano-white', t.pianoWhite);
+            root.style.setProperty('--piano-black', t.pianoBlack);
+            root.style.setProperty('--grid-black-row', t.gridBlackRow);
             
-            // グリッド線の再描画をかける
             updateGridPattern();
         }
 
@@ -542,7 +566,6 @@
 
         window.addEventListener('keydown', (e) => {
             const isCtrl = e.ctrlKey || e.metaKey;
-            
             if (isCtrl && e.code === 'KeyA') {
                 e.preventDefault();
                 if (currentSelectedBoxId && boxRegistry[currentSelectedBoxId]) {
@@ -578,17 +601,16 @@
             
             ctx.clearRect(0, 0, barW, rowHeight);
             
-            // 現在のテーマのアクセントカラーを動的に反映
             const currentAccent = getComputedStyle(document.documentElement).getPropertyValue('--accent-pink').trim();
             const currentAccentDark = getComputedStyle(document.documentElement).getPropertyValue('--accent-dark').trim();
 
-            ctx.strokeStyle = currentAccent + '55'; ctx.lineWidth = 1;
+            ctx.strokeStyle = currentAccent + '22'; ctx.lineWidth = 1;
             ctx.beginPath(); for(let i = 0; i < barW; i += qW) { ctx.moveTo(i, 0); ctx.lineTo(i, rowHeight); } ctx.stroke();
             
-            ctx.strokeStyle = currentAccent + 'cc'; ctx.lineWidth = 1.5;
+            ctx.strokeStyle = currentAccent + '55'; ctx.lineWidth = 1.5;
             ctx.beginPath(); for(let i = 0; i < barW; i += beatW) { ctx.moveTo(i, 0); ctx.lineTo(i, rowHeight); } ctx.stroke();
             
-            ctx.strokeStyle = currentAccentDark; ctx.lineWidth = 3;
+            ctx.strokeStyle = currentAccentDark + 'aa'; ctx.lineWidth = 3;
             ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, rowHeight); ctx.stroke();
             
             return `url(${canvas.toDataURL()})`;
@@ -628,11 +650,11 @@
                 
                 const q = parseInt(document.getElementById('quantize').value) || 16;
                 const qW = barW / q; const beatW = barW / 4;
-                ctx.strokeStyle = currentAccent + '22';
+                ctx.strokeStyle = currentAccent + '12'; 
                 ctx.beginPath(); for(let i = 0; i < barW; i += qW) { ctx.moveTo(i, 0); ctx.lineTo(i, 65); } ctx.stroke();
-                ctx.strokeStyle = currentAccent + '66';
+                ctx.strokeStyle = currentAccent + '35'; 
                 ctx.beginPath(); for(let i = 0; i < barW; i += beatW) { ctx.moveTo(i, 0); ctx.lineTo(i, 65); } ctx.stroke();
-                ctx.strokeStyle = currentAccent; ctx.lineWidth = 2;
+                ctx.strokeStyle = currentAccent + 'aa'; ctx.lineWidth = 2;
                 ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,65); ctx.stroke();
                 
                 lane.style.backgroundImage = `url(${canvas.toDataURL()})`;
@@ -693,9 +715,9 @@
 
         function updateEditorMasks() {
             const maskL = document.getElementById('mask-left'); const maskR = document.getElementById('mask-right');
-            if(!currentSelectedBoxId || !boxRegistry[currentSelectedBoxId]) { maskL.style.width = '0px'; maskR.style.left = '0px'; maskR.style.width = '100%'; return; }
+            if(!currentSelectedBoxId || !boxRegistry[currentSelectedBoxId]) { maskL.style.width = '0px'; maskR.style.left = '0px'; maskR.style.width = '0px'; return; }
             const box = boxRegistry[currentSelectedBoxId];
-            maskL.style.width = `${box.x * zoomScale}px`; maskR.style.left = `${(box.x + box.w) * zoomScale}px`; maskR.style.width = '160000px'; 
+            maskL.style.width = `${box.x * zoomScale}px`; maskR.style.left = `${(box.x + box.w) * zoomScale}px`; maskR.style.width = '4000px'; 
         }
 
         function createTrackBox(part, startXInside) {
@@ -1195,7 +1217,8 @@
             a.href = url; a.download = 'ray_project.mid'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
         });
 
-        updateGridPattern();
+        // デフォルトテーマを「マカロンピンク」に指定して強制初期化
+        changeTheme('pink');
         selectBox(null); 
         updatePlayheadUI();
     </script>
