@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ray - Creative DAW (Pro Edition v9 - MIDI Export Preview)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Ray - Ultimate Creative DAW</title>
     <style>
         :root {
             --bg-main: #fff0f5; 
@@ -11,14 +11,11 @@
             --accent-pink: #ff69b4; 
             --text-dark: #4a4a4a;
             --white: #ffffff;
-            --grid-line: rgba(255, 105, 180, 0.15);
-            --grid-beat: rgba(255, 105, 180, 0.35);
-            --grid-bar: rgba(255, 105, 180, 0.7);
             --playhead-color: #ff1493;
-            --editor-height: 320px;
+            --editor-height: 280px;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; touch-action: none; }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
 
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -33,187 +30,249 @@
         header {
             background-color: var(--white);
             border-bottom: 2px solid var(--accent-pink);
-            padding: 8px 20px;
+            padding: 6px 12px;
             display: flex;
-            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 6px;
             align-items: center;
             z-index: 100;
         }
 
-        .logo { font-size: 24px; font-weight: bold; color: var(--accent-pink); letter-spacing: 2px; }
-        .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .logo { font-size: 20px; font-weight: bold; color: var(--accent-pink); letter-spacing: 1px; margin-right: 10px; }
+        .controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; flex: 1; }
         .control-group {
-            display: flex; align-items: center; gap: 5px;
-            background: var(--white); padding: 4px 12px; border-radius: 20px;
-            border: 1px solid var(--accent-pink); font-size: 12px;
+            display: flex; align-items: center; gap: 4px;
+            background: var(--white); padding: 3px 8px; border-radius: 15px;
+            border: 1px solid var(--accent-pink); font-size: 11px;
         }
 
         button {
             background-color: var(--accent-pink); color: var(--white); border: none;
-            padding: 5px 12px; border-radius: 15px; cursor: pointer; font-weight: bold;
+            padding: 4px 10px; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 11px;
+            white-space: nowrap;
         }
-        button.active {
-            background-color: #ff1493;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.3);
-        }
-        button.export-btn {
-            background-color: #4caf50;
-        }
-        button.export-btn:hover {
-            background-color: #45a049;
-        }
+        button.active { background-color: #ff1493; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+        button.util-btn { background-color: #a04580; }
+        button.undo-btn { background-color: #ff8c00; }
+        button.delete-btn { background-color: #d9534f; } /* 消去ボタン用赤色 */
+        button.midi-btn { background-color: #4b0082; }
 
-        input, select { border: 1px solid #ffb6c1; border-radius: 4px; padding: 2px; color: var(--text-dark); }
+        input, select { border: 1px solid #ffb6c1; border-radius: 4px; padding: 2px; color: var(--text-dark); font-size: 11px; background: white; }
+        select optgroup { font-weight: bold; color: var(--accent-pink); background: #fff; }
+        select option { color: var(--text-dark); font-weight: normal; }
 
+        /* 上部ルーラー */
         .ruler-container {
-            display: flex; height: 24px; background: var(--bg-dark);
-            border-bottom: 1px solid var(--accent-pink); margin-left: 150px; position: relative;
-            overflow: hidden; cursor: pointer;
+            display: flex; height: 26px; background: var(--bg-dark);
+            border-bottom: 1px solid var(--accent-pink); position: relative;
+            overflow: hidden;
         }
-        .ruler-wrapper { position: absolute; left: 0; top: 0; height: 100%; display: flex; }
+        .ruler-offset { width: 120px; min-width: 120px; background: var(--white); border-right: 2px solid var(--accent-pink); z-index: 15; }
+        .ruler-scroll-area { flex: 1; overflow: hidden; position: relative; }
+        .ruler-wrapper { position: absolute; left: 0; top: 0; height: 100%; width: max-content; }
         .ruler-cell {
             position: absolute; height: 100%; font-size: 11px; font-weight: bold;
-            color: #555; border-left: 2px solid var(--grid-bar); padding-left: 4px; display: flex; align-items: center;
+            color: #555; border-left: 3px solid #ff1493; padding-left: 4px; display: flex; align-items: center;
             white-space: nowrap;
         }
 
-        .timeline { flex: 1; display: flex; flex-direction: column; overflow-x: auto; overflow-y: hidden; position: relative; }
-        .track-row { display: flex; height: 80px; border-bottom: 1px solid #ffdae0; position: relative; width: max-content; }
+        /* タイムライン */
+        .timeline { flex: 1; display: flex; flex-direction: column; overflow: auto; position: relative; -webkit-overflow-scrolling: touch; }
+        .track-row { display: flex; height: 65px; border-bottom: 1px solid #ffdae0; position: relative; width: max-content; }
+        
         .track-header {
-            width: 150px; min-width: 150px; background: var(--white); position: sticky; left: 0;
-            display: flex; flex-direction: column; justify-content: center; padding: 0 15px;
-            border-right: 2px solid var(--accent-pink); font-weight: bold; z-index: 10;
+            width: 120px; min-width: 120px; background: var(--white); position: sticky; left: 0;
+            display: flex; flex-direction: column; justify-content: center; padding: 0 6px;
+            border-right: 2px solid var(--accent-pink); font-weight: bold; font-size: 11px; z-index: 10;
+            gap: 4px;
         }
-        .track-lane { position: relative; height: 100%; background-color: rgba(255,255,255,0.1); cursor: cell; background-repeat: repeat-x; }
+        .track-header .track-name { cursor: move; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .track-header select { width: 100%; font-size: 9px; padding: 1px; }
 
+        .track-lane { position: relative; height: 100%; width: max-content; }
+
+        /* 再生バー */
         .playhead {
-            position: absolute; top: 0; bottom: 0; width: 2px;
+            position: absolute; top: 0; height: 100%; width: 2px;
             background-color: var(--playhead-color); z-index: 50; pointer-events: none;
+            transition: none;
         }
+        .timeline-playhead-container {
+            position: absolute; top: 0; bottom: 0; left: 120px; right: 0; pointer-events: none; z-index: 45;
+        }
+        #timeline-playhead { height: 100%; }
 
         .midi-box {
-            position: absolute; height: 70%; top: 15%;
+            position: absolute; height: 76%; top: 12%;
             background: linear-gradient(45deg, #ff69b4, #ffb6c1);
             border: 2px solid var(--white); border-radius: 6px; color: var(--white);
             font-size: 11px; font-weight: bold; display: flex; flex-direction: column; align-items: flex-start;
-            padding: 2px 8px; box-shadow: 0 2px 6px rgba(240, 98, 146, 0.3); cursor: grab;
-            overflow: hidden;
+            padding: 1px 6px; box-shadow: 0 2px 4px rgba(240, 98, 146, 0.3);
+            overflow: hidden; cursor: grab; z-index: 5;
         }
         .midi-box .box-title { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .midi-box.selected { border-color: #ff1493; box-shadow: 0 0 10px #ff69b4; }
+        .midi-box.selected { border-color: #ff1493; box-shadow: 0 0 8px #ff69b4; }
         .resizer-right {
-            position: absolute; right: 0; top: 0; bottom: 0; width: 10px; cursor: ew-resize; background: rgba(0,0,0,0.05); z-index: 5;
+            position: absolute; right: 0; top: 0; bottom: 0; width: 14px; cursor: ew-resize; background: rgba(0,0,0,0.04); z-index: 6;
         }
         
-        .box-preview-canvas {
-            position: absolute; bottom: 2px; left: 5px; right: 5px; height: 24px;
-            pointer-events: none; opacity: 0.7;
-        }
+        .box-preview-canvas { position: absolute; bottom: 1px; left: 2px; right: 2px; height: 16px; pointer-events: none; opacity: 0.6; }
 
         .selection-marquee {
-            position: absolute;
-            border: 1px dashed #ff1493;
-            background: rgba(255, 20, 147, 0.15);
-            z-index: 40;
-            pointer-events: none;
+            position: absolute; border: 1px dashed #ff1493; background: rgba(255, 20, 147, 0.15); z-index: 40; pointer-events: none;
         }
 
         .editor-resize-handle {
-            height: 6px; background: var(--bg-dark); cursor: ns-resize;
+            height: 8px; background: var(--bg-dark); cursor: ns-resize;
             border-top: 1px solid var(--accent-pink); border-bottom: 1px solid var(--accent-pink);
         }
 
+        /* エディタ */
         .editor-container { height: var(--editor-height); background: var(--white); display: flex; flex-direction: column; position: relative; }
         .tabs { display: flex; background: var(--bg-dark); border-bottom: 1px solid var(--accent-pink); justify-content: space-between; align-items: center; }
         .tab-group { display: flex; }
-        .tab { padding: 8px 20px; cursor: pointer; font-weight: bold; color: var(--text-dark); font-size: 13px; }
+        .tab { padding: 6px 14px; cursor: pointer; font-weight: bold; color: var(--text-dark); font-size: 12px; }
         .tab.active { background: var(--white); color: var(--accent-pink); border-top: 2px solid var(--accent-pink); }
-        .editor-title { font-size: 12px; font-weight: bold; color: var(--accent-pink); padding-right: 20px; }
+        .editor-title { font-size: 11px; font-weight: bold; color: var(--accent-pink); padding-right: 10px; }
 
         .editor-ruler {
-            display: flex; height: 20px; background: #fafafa; border-bottom: 1px solid #ddd; margin-left: 70px; position: relative;
-            overflow: hidden; cursor: pointer;
+            display: flex; height: 22px; background: #fafafa; border-bottom: 1px solid #ddd; position: relative;
+            overflow: hidden;
         }
-        .editor-ruler-wrapper { position: absolute; left: 0; top: 0; height: 100%; display: flex; }
+        .editor-ruler-offset { width: 60px; min-width: 60px; background: var(--white); border-right: 2px solid var(--accent-pink); z-index: 15; }
+        .editor-ruler-scroll-area { flex: 1; overflow: hidden; position: relative; }
+        .editor-ruler-wrapper { position: absolute; left: 0; top: 0; height: 100%; width: max-content; }
 
-        .piano-roll { flex: 1; display: flex; overflow: auto; position: relative; }
-        .keyboard { width: 70px; position: sticky; left: 0; z-index: 15; background: var(--white); border-right: 2px solid var(--accent-pink); }
+        .piano-roll { flex: 1; display: flex; overflow: auto; position: relative; -webkit-overflow-scrolling: touch; }
+        
+        .keyboard { width: 60px; position: sticky; left: 0; z-index: 15; background: var(--white); border-right: 2px solid var(--accent-pink); cursor: move; }
         .key {
-            height: 20px; border-bottom: 1px solid #eee; font-size: 9px;
-            display: flex; align-items: center; justify-content: flex-end; padding-right: 5px; background: var(--white);
+            height: 20px; border-bottom: 1px solid #ffdae0; font-size: 9px; font-weight: bold;
+            display: flex; align-items: center; justify-content: flex-end; padding-right: 4px; 
+            background: #fffaf0; color: #4a4a4a;
         }
-        .key.black { background: #4a4a4a; color: var(--white); }
+        .key.black { background: #4a4a4a; color: var(--white); border-bottom: 1px solid #222; }
+        .key.drum-key { background: #fff0f5; border-bottom: 1px solid #ffb6c1; color: var(--accent-pink); }
         
-        .note-grid { position: absolute; left: 70px; top: 0; background-color: #fff; cursor: crosshair; background-repeat: repeat; }
+        .note-grid { position: absolute; left: 60px; top: 0; background-color: #fff; background-repeat: repeat; }
         
-        .grid-mask {
-            position: absolute; top: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.08);
-            pointer-events: none; z-index: 2;
+        /* ピアノロール内の縦長再生バーコンテナ */
+        .editor-playhead-container {
+            position: absolute; top: 0; bottom: 0; left: 60px; right: 0; pointer-events: none; z-index: 45;
         }
+
+        .grid-mask { position: absolute; top: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.06); pointer-events: none; z-index: 2; }
         .grid-mask.left { left: 0; }
         .grid-mask.right { right: 0; }
 
         .piano-note {
             position: absolute; height: 16px; background: var(--accent-pink);
-            border: 1px solid var(--white); border-radius: 3px; opacity: 0.9; cursor: grab; z-index: 3;
+            border: 1px solid var(--white); border-radius: 3px; opacity: 0.9; z-index: 3; cursor: grab;
         }
         .piano-note.selected {
-            background: #ff1493;
-            border-color: #fff;
-            box-shadow: 0 0 8px #ff1493;
+            background: #ff1493; border-color: #fff; box-shadow: 0 0 6px #ff1493;
         }
 
-        footer { background: var(--white); border-top: 1px solid var(--grid-line); padding: 6px 20px; font-size: 11px; color: #888; text-align: center; }
+        footer { background: var(--white); border-top: 1px solid rgba(255,105,180,0.15); padding: 4px 10px; font-size: 10px; color: #888; text-align: center; }
+
+        #orientation-alert {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(255, 240, 245, 0.98); color: #ff1493; z-index: 9999;
+            flex-direction: column; justify-content: center; align-items: center; font-weight: bold; font-size: 18px; text-align: center; padding: 20px;
+        }
+        @media screen and (max-width: 767px) and (orientation: landscape) {
+            #orientation-alert { display: flex; }
+        }
     </style>
 </head>
 <body>
+
+    <div id="orientation-alert">
+        <div>📱 縦画面に戻してご利用ください</div>
+        <div style="font-size: 12px; color: #666; margin-top: 10px;">（横画面制限モード）</div>
+    </div>
 
     <header>
         <div class="logo">Ray</div>
         <div class="controls">
             <div class="control-group">
-                <button id="btn-play">▶ Play [Space]</button>
-                <button id="btn-stop">■ Stop</button>
+                <button id="btn-play">▶再生</button>
+                <button id="btn-stop">■停止</button>
+                <button id="btn-reset" style="background-color: #555;">⏮最初から</button>
             </div>
             <div class="control-group">
-                <button id="tool-pencil" class="active">✏️ 鉛筆ツール</button>
-                <button id="tool-select">🔍 選択ツール</button>
+                <button id="btn-undo" class="undo-btn">↩️戻る</button>
             </div>
+            <div class="control-group">
+                <button id="tool-pencil" class="active">✏️ペン</button>
+                <button id="tool-select">🔍選択</button>
+                <button id="tool-eraser">🧹消しゴム</button>
+            </div>
+            <div class="control-group">
+                <button id="btn-copy" class="util-btn">📋コピー</button>
+                <button id="btn-paste" class="util-btn">📥貼り付け</button>
+                <button id="btn-delete" class="delete-btn">🗑️消去</button> </div>
             <div class="control-group">
                 <label>BPM:</label>
-                <input type="number" id="tempo" value="120" style="width: 50px;">
+                <input type="number" id="tempo" value="120" style="width: 42px;">
             </div>
             <div class="control-group">
-                <label>Quantize:</label>
                 <select id="quantize" onchange="updateGridPattern()">
-                    <option value="4">1/4 (四分音符)</option>
-                    <option value="8">1/8 (八分音符)</option>
-                    <option value="16" selected>1/16 (十六分音符)</option>
-                    <option value="12">1/12 (四分三連符)</option>
-                    <option value="24">1/24 (八分三連符)</option>
-                    <option value="48">1/48 (十六分三連符)</option>
+                    <optgroup label="ストレート (通常)">
+                        <option value="4">1/4 (4分)</option>
+                        <option value="8">1/8 (8分)</option>
+                        <option value="16" selected>1/16 (16分)</option>
+                    </optgroup>
+                    <optgroup label="トリプレット (3連符)">
+                        <option value="6">1/6 (4分3連)</option>
+                        <option value="12">1/12 (8分3連)</option>
+                        <option value="24">1/24 (16分3連)</option>
+                    </optgroup>
                 </select>
             </div>
-            <div class="control-group">
-                <button id="btn-export" class="export-btn">🎵 MIDI出力</button>
-            </div>
-            <div class="control-group" style="border: none;">
-                <span style="color:#aaa;">[Ctrl+Z]:戻る [Ctrl+C/V]:コピペ [Backspace]:消去</span>
-            </div>
+            <button id="btn-export-midi" class="midi-btn">📥MIDI出力</button>
         </div>
     </header>
 
-    <div class="ruler-container" id="ruler-container" onmousedown="setPlayheadByClick(event, true)">
-        <div class="ruler-wrapper" id="ruler"></div>
+    <div class="ruler-container" id="ruler-container">
+        <div class="ruler-offset"></div>
+        <div class="ruler-scroll-area" id="ruler-scroll-area">
+            <div class="ruler-wrapper" id="ruler"></div>
+        </div>
     </div>
 
     <div class="timeline" id="timeline-area">
-        <div class="playhead" id="timeline-playhead" style="left: 150px;"></div>
+        <div class="timeline-playhead-container" id="timeline-playhead-container">
+            <div class="playhead" id="timeline-playhead"></div>
+        </div>
         
-        <div class="track-row" data-part="drum"><div class="track-header">🥁 drum</div><div class="track-lane" onclick="handleLaneClick(this, 'drum', event)"></div></div>
-        <div class="track-row" data-part="melody"><div class="track-header">🎹 melody</div><div class="track-lane" onclick="handleLaneClick(this, 'melody', event)"></div></div>
-        <div class="track-row" data-part="chord"><div class="track-header">🎸 chords</div><div class="track-lane" onclick="handleLaneClick(this, 'chord', event)"></div></div>
-        <div class="track-row" data-part="bass"><div class="track-header">🐟 bass</div><div class="track-lane" onclick="handleLaneClick(this, 'bass', event)"></div></div>
+        <div class="track-row" data-part="drum">
+            <div class="track-header">
+                <div class="track-name">🥁 drum ↕↔</div>
+            </div>
+            <div class="track-lane" id="lane-drum"></div>
+        </div>
+        <div class="track-row" data-part="melody">
+            <div class="track-header">
+                <div class="track-name">🎹 melody ↕↔</div>
+                <select id="wave-melody"><option value="triangle" selected>Tri (三角波)</option><option value="sawtooth">Saw (鋸歯状)</option><option value="square">Squ (矩形波)</option><option value="sine">Sin (正弦波)</option></select>
+            </div>
+            <div class="track-lane" id="lane-melody"></div>
+        </div>
+        <div class="track-row" data-part="chord">
+            <div class="track-header">
+                <div class="track-name">🎸 chords ↕↔</div>
+                <select id="wave-chord"><option value="triangle" selected>Tri (三角波)</option><option value="sawtooth">Saw (鋸歯状)</option><option value="square">Squ (矩形波)</option><option value="sine">Sin (正弦波)</option></select>
+            </div>
+            <div class="track-lane" id="lane-chord"></div>
+        </div>
+        <div class="track-row" data-part="bass">
+            <div class="track-header">
+                <div class="track-name">🎻 bass ↕↔</div>
+                <select id="wave-bass"><option value="sawtooth" selected>Saw (鋸歯状)</option><option value="square">Squ (矩形波)</option><option value="triangle">Tri (三角波)</option><option value="sine">Sin (正弦波)</option></select>
+            </div>
+            <div class="track-lane" id="lane-bass"></div>
+        </div>
     </div>
 
     <div class="editor-resize-handle" id="editor-resizer"></div>
@@ -221,22 +280,27 @@
     <div class="editor-container" id="editor-container">
         <div class="tabs">
             <div class="tab-group">
-                <div class="tab active" id="tab-drum" onclick="switchTab('drum')"> drum</div>
-                <div class="tab" id="tab-melody" onclick="switchTab('melody')"> melody</div>
-                <div class="tab" id="tab-chord" onclick="switchTab('chord')"> chords</div>
-                <div class="tab" id="tab-bass" onclick="switchTab('bass')"> bass</div>
+                <div class="tab active" id="tab-drum" onclick="switchTab('drum')">🥁 drum</div>
+                <div class="tab" id="tab-melody" onclick="switchTab('melody')">🎹 melody</div>
+                <div class="tab" id="tab-chord" onclick="switchTab('chord')">🎸 chords</div>
+                <div class="tab" id="tab-bass" onclick="switchTab('bass')">🎻 bass</div>
             </div>
-            <div class="editor-title" id="current-box-title">選択中のボックス: なし</div>
+            <div class="editor-title" id="current-box-title">ボックス未選択</div>
         </div>
 
-        <div class="editor-ruler" id="editor-ruler-container" onmousedown="setPlayheadByClick(event, false)">
-            <div class="editor-ruler-wrapper" id="editor-ruler"></div>
+        <div class="editor-ruler" id="editor-ruler-container">
+            <div class="editor-ruler-offset"></div>
+            <div class="editor-ruler-scroll-area" id="editor-ruler-scroll-area">
+                <div class="editor-ruler-wrapper" id="editor-ruler"></div>
+            </div>
         </div>
 
         <div class="piano-roll" id="editor-scroll">
-            <div class="playhead" id="editor-playhead" style="left: 70px;"></div>
+            <div class="editor-playhead-container" id="editor-playhead-container">
+                <div class="playhead" id="editor-playhead"></div>
+            </div>
             <div class="keyboard" id="keyboard"></div>
-            <div class="note-grid" id="note-grid" onmousedown="handleGridMouseDown(event)">
+            <div class="note-grid" id="note-grid">
                 <div id="mask-left" class="grid-mask left"></div>
                 <div id="mask-right" class="grid-mask right"></div>
             </div>
@@ -244,12 +308,12 @@
     </div>
 
     <footer>
-        Space/Play | ルーラーをクリックでグリッド吸着移動 | [Shift+Scroll]:横移動 | 二本指ピンチ:ズーム
+        🔍選択ツールで範囲選択 / Ctrl+A: 全選択 / Backspace, Delete, 🗑️ボタン: 選択全消去 / コピペ対応
     </footer>
 
     <script>
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
+
         function createNoiseBuffer() {
             const bufferSize = audioCtx.sampleRate * 0.5;
             const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
@@ -262,1028 +326,691 @@
         const noiseBuffer = createNoiseBuffer();
 
         function playTone(freq, duration, part='melody', noteName='') {
-            if(audioCtx.state === 'suspended') audioCtx.resume();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             const now = audioCtx.currentTime;
 
-            if(part === 'drum') {
-                if (noteName === 'Snare' || noteName === 'F3' || noteName === 'G3' || noteName === 'A3' || noteName === 'B3') {
-                    const noiseNode = audioCtx.createBufferSource();
-                    noiseNode.buffer = noiseBuffer;
-                    const noiseFilter = audioCtx.createBiquadFilter();
-                    noiseFilter.type = 'bandpass'; noiseFilter.frequency.value = 1500;
-                    const noiseGain = audioCtx.createGain();
-                    noiseGain.gain.setValueAtTime(0.4, now);
-                    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-                    noiseNode.connect(noiseFilter); noiseFilter.connect(noiseGain); noiseGain.connect(audioCtx.destination);
-
+            if (part === 'drum') {
+                if (noteName === 'Kick' || noteName === 'C3' || noteName === 'D3') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.frequency.setValueAtTime(120, now);
+                    osc.frequency.exponentialRampToValueAtTime(45, now + 0.12);
+                    gain.gain.setValueAtTime(1.0, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                    osc.start(now); osc.stop(now + 0.18);
+                } 
+                else if (noteName === 'Snare' || noteName === 'F3' || noteName === 'G3') {
                     const osc = audioCtx.createOscillator();
                     const oscGain = audioCtx.createGain();
-                    osc.type = 'triangle'; osc.frequency.setValueAtTime(180, now);
-                    osc.frequency.linearRampToValueAtTime(100, now + 0.08);
-                    oscGain.gain.setValueAtTime(0.3, now);
-                    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(160, now);
+                    osc.frequency.linearRampToValueAtTime(100, now + 0.05);
+                    oscGain.gain.setValueAtTime(0.5, now);
+                    oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                    
+                    const noise = audioCtx.createBufferSource();
+                    noise.buffer = noiseBuffer;
+                    const noiseFilter = audioCtx.createBiquadFilter();
+                    noiseFilter.type = 'bandpass';
+                    noiseFilter.frequency.setValueAtTime(2000, now);
+                    
+                    const noiseGain = audioCtx.createGain();
+                    noiseGain.gain.setValueAtTime(0.6, now);
+                    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
+                    
                     osc.connect(oscGain); oscGain.connect(audioCtx.destination);
-
-                    noiseNode.start(now); noiseNode.stop(now + 0.16);
-                    osc.start(now); osc.stop(now + 0.11);
-                } else if (noteName === 'Kick' || noteName === 'C3' || noteName === 'D3' || noteName === 'E3' || noteName === 'F2') { 
-                    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-                    osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.12);
-                    gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-                    osc.start(now); osc.stop(now + 0.12);
-                } else if (noteName === 'Hi-Hat' || noteName === 'C4' || noteName === 'D4' || noteName === 'E4') {
-                    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-                    osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.type = 'square'; osc.frequency.setValueAtTime(10000, now);
-                    gain.gain.setValueAtTime(0.12, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
-                    osc.start(now); osc.stop(now + 0.04);
-                } else if (noteName === 'Open HH' || noteName === 'G4' || noteName === 'A4' || noteName === 'B4') {
-                    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-                    osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.type = 'square'; osc.frequency.setValueAtTime(9000, now);
-                    gain.gain.setValueAtTime(0.12, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-                    osc.start(now); osc.stop(now + 0.25);
+                    noise.connect(noiseFilter); noiseFilter.connect(noiseGain); noiseGain.connect(audioCtx.destination);
+                    
+                    osc.start(now); osc.stop(now + 0.1);
+                    noise.start(now); noise.stop(now + 0.15);
+                } 
+                else { 
+                    const noise = audioCtx.createBufferSource();
+                    noise.buffer = noiseBuffer;
+                    const filter = audioCtx.createBiquadFilter();
+                    filter.type = 'highpass';
+                    filter.frequency.setValueAtTime(8500, now);
+                    
+                    const gain = audioCtx.createGain();
+                    const isClosed = !noteName.includes('Open');
+                    const len = isClosed ? 0.04 : 0.22;
+                    
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + len);
+                    
+                    noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+                    noise.start(now); noise.stop(now + len);
                 }
                 return;
             }
 
-            if(part === 'melody' || part === 'chord') {
-                const osc1 = audioCtx.createOscillator();
-                const osc2 = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc1.type = 'triangle'; osc2.type = 'sine';
-                osc1.frequency.setValueAtTime(freq, now);
-                osc2.frequency.setValueAtTime(freq * 2, now);
-                gain.gain.setValueAtTime(0.15, now);
-                gain.gain.linearRampToValueAtTime(0.1, now + 0.02);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-                osc1.connect(gain); osc2.connect(gain); gain.connect(audioCtx.destination);
-                osc1.start(now); osc2.start(now + duration);
-                osc1.stop(now + duration); osc2.stop(now + duration);
-                return;
-            }
-
-            if(part === 'bass') {
-                const osc = audioCtx.createOscillator();
-                const filter = audioCtx.createBiquadFilter();
-                const gain = audioCtx.createGain();
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(freq, now);
-                filter.type = 'lowpass'; filter.frequency.setValueAtTime(250, now);
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-                osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(now); osc.stop(now + duration);
-                return;
-            }
+            const osc = audioCtx.createOscillator(); 
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            
+            const selectEl = document.getElementById(`wave-${part}`);
+            osc.type = selectEl ? selectEl.value : (part === 'bass' ? 'sawtooth' : 'triangle');
+            
+            osc.frequency.setValueAtTime(freq, now);
+            const baseGain = part === 'bass' ? 0.18 : 0.15;
+            gain.gain.setValueAtTime(baseGain, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+            osc.start(now); osc.stop(now + duration);
         }
 
         const noteNames = ['B', 'A#', 'A', 'G#', 'G', 'F#', 'F', 'E', 'D#', 'D', 'C#', 'C'];
-        const octaves = [4, 3, 2];
-        const drumNotes = ['Open HH', 'Hi-Hat', 'Snare', 'Kick'];
-        
-        let freqMap = []; 
-        let totalKeys = 0;
-        let zoomScale = 1.0; 
-        let currentMaxBars = 50; 
+        const octaves = [4, 3, 2]; const drumNotes = ['Open HH', 'Hi-Hat', 'Snare', 'Kick'];
+        let freqMap = []; let totalKeys = 0; let zoomScale = 1.0; 
+        let currentMaxBars = 500; 
 
         const keyboardEl = document.getElementById('keyboard');
         const gridEl = document.getElementById('note-grid');
         const timelineArea = document.getElementById('timeline-area');
         const editorScroll = document.getElementById('editor-scroll');
 
-        octaves.forEach(oct => {
-            noteNames.forEach(name => {
-                freqMap.push({ name: name+oct, freq: 493.88 * Math.pow(2, -totalKeys/12) });
-                totalKeys++;
-            });
-        });
+        octaves.forEach(oct => { noteNames.forEach(name => { freqMap.push({ name: name+oct, freq: 493.88 * Math.pow(2, -totalKeys/12) }); totalKeys++; }); });
 
-        let boxRegistry = {}; 
-        let currentSelectedBoxId = null;
-        let currentPart = 'drum';
-        let currentTool = 'pencil'; 
-        let boxCounter = 0;
-        let isPlaying = false;
-        let playX = 0; 
-        let lastFrameTime = 0;
-        let isResizingActive = false;
-
-        let undoStack = [];
+        let boxRegistry = {}; let currentSelectedBoxId = null; let currentPart = 'drum'; let currentTool = 'pencil'; 
+        let boxCounter = 0; let isPlaying = false; let playX = 0; let lastFrameTime = 0; let isResizingActive = false;
+        let noteClipboard = []; let undoStack = [];
 
         function saveHistory() {
-            if (!currentSelectedBoxId || !boxRegistry[currentSelectedBoxId]) return;
-            const snapshot = JSON.stringify(boxRegistry[currentSelectedBoxId].notes);
-            undoStack.push({ boxId: currentSelectedBoxId, notes: snapshot });
-            if (undoStack.length > 50) undoStack.shift();
+            if (undoStack.length > 30) undoStack.shift();
+            undoStack.push(JSON.stringify(boxRegistry));
         }
 
         function triggerUndo() {
             if (undoStack.length === 0) return;
-            const previousState = undoStack.pop();
-            if (boxRegistry[previousState.boxId]) {
-                boxRegistry[previousState.boxId].notes = JSON.parse(previousState.notes);
-                if (currentSelectedBoxId === previousState.boxId) {
-                    refreshEditorContainer();
+            boxRegistry = JSON.parse(undoStack.pop());
+            document.querySelectorAll('.midi-box').forEach(b => b.remove());
+            Object.values(boxRegistry).forEach(boxData => {
+                const partLane = document.getElementById(`lane-${boxData.part}`);
+                const box = document.createElement('div'); box.classList.add('midi-box'); box.id = boxData.id;
+                box.innerHTML = `<span class="box-title"></span><canvas class="box-preview-canvas"></canvas><div class="resizer-right"></div>`;
+                setupUnifiedDrag(box, boxData, true);
+                box.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if(currentTool === 'eraser') { saveHistory(); delete boxRegistry[boxData.id]; box.remove(); if(currentSelectedBoxId===boxData.id) selectBox(null); } else { selectBox(boxData.id); }
+                });
+                box.addEventListener('contextmenu', (e) => { e.preventDefault(); saveHistory(); delete boxRegistry[boxData.id]; box.remove(); if(currentSelectedBoxId===boxData.id) selectBox(null); });
+                box.querySelector('.resizer-right').addEventListener('mousedown', (e) => startBoxResize(e, box, boxData));
+                box.querySelector('.resizer-right').addEventListener('touchstart', (e) => startBoxResize(e, box, boxData), {passive:false});
+                partLane.appendChild(box);
+            });
+            selectBox(currentSelectedBoxId);
+        }
+        document.getElementById('btn-undo').addEventListener('click', triggerUndo);
+
+        // 複数対応コピー
+        function doCopy() {
+            if(!currentSelectedBoxId) return; 
+            const parent = boxRegistry[currentSelectedBoxId]; 
+            const tgs = parent.notes.filter(n => n.selected);
+            if(tgs.length > 0) {
+                const minX = Math.min(...tgs.map(n => n.x)); 
+                noteClipboard = tgs.map(n => ({ y: n.y, xOffset: n.x - minX, w: n.w })); 
+            }
+        }
+        document.getElementById('btn-copy').addEventListener('click', doCopy);
+
+        // 複数対応貼り付け
+        function doPaste() {
+            if(!currentSelectedBoxId || noteClipboard.length === 0) return; 
+            const parent = boxRegistry[currentSelectedBoxId];
+            let pasteXInside = playX - parent.x; 
+            if(pasteXInside < 0) pasteXInside = 0;
+            const step = getStepWidth() / zoomScale; 
+            pasteXInside = Math.floor(pasteXInside / step) * step;
+
+            saveHistory();
+            parent.notes.forEach(n => n.selected = false);
+            noteClipboard.forEach(clip => {
+                const tx = pasteXInside + clip.xOffset;
+                if(tx >= 0 && tx < parent.w) {
+                    const nid = `note-${Date.now()}-${Math.random()}`; 
+                    parent.notes.push({ id: nid, x: tx, y: clip.y, w: clip.w, selected: true });
+                }
+            });
+            refreshEditorContainer(); updateBoxUI(parent);
+        }
+        document.getElementById('btn-paste').addEventListener('click', doPaste);
+
+        // 消去処理の一元化（キーボード・ゴミ箱ボタン両方から呼び出し）
+        function doDeleteSelected() {
+            saveHistory();
+            if (currentSelectedBoxId && boxRegistry[currentSelectedBoxId]) {
+                const parent = boxRegistry[currentSelectedBoxId];
+                // 選択されているノートをすべて削除
+                parent.notes = parent.notes.filter(n => !n.selected);
+                refreshEditorContainer();
+                updateBoxUI(parent);
+            } else {
+                // ボックスが未選択（または選択外タイムライン側）で、selectedクラスがついている全ボックスを削除
+                Object.values(boxRegistry).forEach(box => {
+                    const el = document.getElementById(box.id);
+                    if (el && el.classList.contains('selected')) {
+                        delete boxRegistry[box.id];
+                        el.remove();
+                    }
+                });
+                selectBox(null);
+            }
+        }
+        document.getElementById('btn-delete').addEventListener('click', doDeleteSelected);
+
+        // キーボードショートカット処理
+        window.addEventListener('keydown', (e) => {
+            const isCtrl = e.ctrlKey || e.metaKey;
+            
+            // 全選択 (Ctrl + A)
+            if (isCtrl && e.code === 'KeyA') {
+                e.preventDefault();
+                if (currentSelectedBoxId && boxRegistry[currentSelectedBoxId]) {
+                    const parent = boxRegistry[currentSelectedBoxId];
+                    parent.notes.forEach(n => n.selected = true);
+                    document.querySelectorAll('.piano-note').forEach(el => el.classList.add('selected'));
+                } else {
+                    Object.values(boxRegistry).forEach(box => {
+                        const boxEl = document.getElementById(box.id);
+                        if (boxEl) boxEl.classList.add('selected');
+                    });
                 }
             }
-        }
-
-        let noteClipboard = [];
-
-        function getStepWidth() {
-            const q = parseInt(document.getElementById('quantize').value) || 16;
-            return (320 * zoomScale) / q;
-        }
-
-        function ensureTimelineLength(targetInternalX) {
-            const barWidthInternal = 320;
-            const targetBarIdx = Math.floor(targetInternalX / barWidthInternal) + 4; 
-            if (targetBarIdx > currentMaxBars) {
-                currentMaxBars = targetBarIdx;
-                updateGridPattern();
+            // Backspace または Delete キーでの消去
+            if (e.code === 'Backspace' || e.code === 'Delete') {
+                e.preventDefault();
+                doDeleteSelected();
             }
-        }
+            if (isCtrl && e.code === 'KeyZ') { e.preventDefault(); triggerUndo(); }
+            if (isCtrl && e.code === 'KeyC') { e.preventDefault(); doCopy(); }
+            if (isCtrl && e.code === 'KeyV') { e.preventDefault(); doPaste(); }
+            if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+        });
 
-        function generateGridImage(rowHeight) {
-            const q = parseInt(document.getElementById('quantize').value) || 16;
+        function getStepWidth() { return (320 * zoomScale) / (parseInt(document.getElementById('quantize').value) || 16); }
+
+        function generateGridBackground(rowHeight) {
             const barW = 320 * zoomScale;
-            const beatW = 80 * zoomScale;
-            const qW = barW / q;
-
+            const q = parseInt(document.getElementById('quantize').value) || 16;
+            const qW = barW / q; const beatW = barW / 4; 
             const canvas = document.createElement('canvas');
-            canvas.width = barW;
-            canvas.height = rowHeight;
+            canvas.width = barW; canvas.height = rowHeight;
             const ctx = canvas.getContext('2d');
-
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, barW, rowHeight);
-
-            ctx.strokeStyle = '#eee';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(0, rowHeight - 1);
-            ctx.lineTo(barW, rowHeight - 1);
-            ctx.stroke();
-
-            ctx.strokeStyle = 'rgba(255, 105, 180, 0.18)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            for (let i = 0; i < barW; i += qW) {
-                ctx.moveTo(i, 0); ctx.lineTo(i, rowHeight);
-            }
-            ctx.stroke();
-
-            ctx.strokeStyle = 'rgba(255, 105, 180, 0.4)';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            for (let i = 0; i < barW; i += beatW) {
-                ctx.moveTo(i, 0); ctx.lineTo(i, rowHeight);
-            }
-            ctx.stroke();
-
-            ctx.strokeStyle = 'rgba(255, 105, 180, 0.75)';
-            ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            ctx.moveTo(0, 0); ctx.lineTo(0, rowHeight);
-            ctx.stroke();
-
-            return canvas.toDataURL();
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, barW, rowHeight);
+            ctx.strokeStyle = '#eee'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(0, rowHeight - 1); ctx.lineTo(barW, rowHeight - 1); ctx.stroke();
+            ctx.strokeStyle = 'rgba(255, 105, 180, 0.15)'; ctx.lineWidth = 1;
+            ctx.beginPath(); for(let i = 0; i < barW; i += qW) { ctx.moveTo(i, 0); ctx.lineTo(i, rowHeight); } ctx.stroke();
+            ctx.strokeStyle = 'rgba(255, 105, 180, 0.6)'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); for(let i = 0; i < barW; i += beatW) { ctx.moveTo(i, 0); ctx.lineTo(i, rowHeight); } ctx.stroke();
+            ctx.strokeStyle = '#ff1493'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, rowHeight); ctx.stroke();
+            return `url(${canvas.toDataURL()})`;
         }
 
         function updateGridPattern() {
             const currentW = (currentMaxBars * 320) * zoomScale;
             gridEl.style.width = `${currentW}px`;
-            
             const rowHeight = currentPart === 'drum' ? 40 : 20;
-            const gridDataUrl = generateGridImage(rowHeight);
-            gridEl.style.backgroundImage = `url(${gridDataUrl})`;
-            gridEl.style.backgroundSize = `${320 * zoomScale}px ${rowHeight}px`;
-
-            const laneCanvas = document.createElement('canvas');
-            laneCanvas.width = 320 * zoomScale;
-            laneCanvas.height = 80;
-            const lCtx = laneCanvas.getContext('2d');
-            lCtx.fillStyle = '#ffffff';
-            lCtx.fillRect(0, 0, 320 * zoomScale, 80);
+            const barW = 320 * zoomScale;
             
-            lCtx.strokeStyle = 'rgba(255, 105, 180, 0.3)';
-            lCtx.lineWidth = 1.5;
-            lCtx.beginPath();
-            for(let i=0; i<320*zoomScale; i+=80*zoomScale) {
-                lCtx.moveTo(i, 0); lCtx.lineTo(i, 80);
+            gridEl.style.backgroundImage = generateGridBackground(rowHeight);
+            gridEl.style.backgroundSize = `${barW}px ${rowHeight}px`;
+
+            const playheadContainer = document.getElementById('editor-playhead-container');
+            if (playheadContainer) {
+                playheadContainer.style.width = `${currentW}px`;
+                playheadContainer.style.height = (currentPart === 'drum' ? drumNotes.length * 40 : totalKeys * 20) + 'px';
             }
-            lCtx.stroke();
 
-            lCtx.strokeStyle = 'rgba(255, 105, 180, 0.75)';
-            lCtx.lineWidth = 2.5;
-            lCtx.beginPath();
-            lCtx.moveTo(0,0); lCtx.lineTo(0,80);
-            lCtx.stroke();
-            
             document.querySelectorAll('.track-lane').forEach(lane => {
-                lane.style.width = `${currentW}px`;
-                lane.style.backgroundImage = `url(${laneCanvas.toDataURL()})`;
-                lane.style.backgroundSize = `${320 * zoomScale}px 80px`;
+                lane.style.width = `${currentW}px`; lane.style.backgroundImage = generateGridBackground(65); lane.style.backgroundSize = `${barW}px 65px`;
             });
-
-            document.getElementById('ruler').style.width = `${currentW}px`;
-            document.getElementById('editor-ruler').style.width = `${currentW}px`;
-
-            initRulers();
-            renderKeyboard();
-            refreshAllBoxesUI();
-            updatePlayheadUI();
-            updateEditorMasks();
+            document.getElementById('ruler').style.width = `${currentW}px`; document.getElementById('editor-ruler').style.width = `${currentW}px`;
+            initRulers(); renderKeyboard(); refreshAllBoxesUI(); updatePlayheadUI(); updateEditorMasks();
         }
 
         function initRulers() {
-            const rEl = document.getElementById('ruler');
-            const edREl = document.getElementById('editor-ruler');
-            rEl.innerHTML = ''; edREl.innerHTML = '';
-            const currentBarWidth = 320 * zoomScale;
+            const rEl = document.getElementById('ruler'); const edREl = document.getElementById('editor-ruler');
+            rEl.innerHTML = ''; edREl.innerHTML = ''; const currentBarWidth = 320 * zoomScale;
+            
+            const frag1 = document.createDocumentFragment();
+            const frag2 = document.createDocumentFragment();
             for (let i = 1; i <= currentMaxBars; i++) {
-                const c1 = document.createElement('div'); c1.classList.add('ruler-cell');
-                c1.style.left = `${(i - 1) * currentBarWidth}px`; c1.innerText = `${i}`;
-                rEl.appendChild(c1);
-
-                const c2 = document.createElement('div'); c2.classList.add('ruler-cell');
-                c2.style.left = `${(i - 1) * currentBarWidth}px`; c2.innerText = `${i} 小節`;
-                edREl.appendChild(c2);
+                const c1 = document.createElement('div'); c1.classList.add('ruler-cell'); c1.style.left = `${(i - 1) * currentBarWidth}px`; c1.innerText = `${i}`; frag1.appendChild(c1);
+                const c2 = document.createElement('div'); c2.classList.add('ruler-cell'); c2.style.left = `${(i - 1) * currentBarWidth}px`; c2.innerText = `${i}小節`; frag2.appendChild(c2);
             }
+            rEl.appendChild(frag1); edREl.appendChild(frag2);
         }
 
         function renderKeyboard() {
             keyboardEl.innerHTML = '';
             if(currentPart === 'drum') {
                 gridEl.style.height = `${drumNotes.length * 40}px`;
-                drumNotes.forEach(name => {
-                    const key = document.createElement('div'); key.classList.add('key', 'drum-key');
-                    key.style.height = '40px'; key.innerText = name; keyboardEl.appendChild(key);
-                });
+                drumNotes.forEach(name => { const key = document.createElement('div'); key.classList.add('key', 'drum-key'); key.style.height = '40px'; key.innerText = name; keyboardEl.appendChild(key); });
             } else {
                 gridEl.style.height = `${totalKeys * 20}px`;
-                octaves.forEach(oct => {
-                    noteNames.forEach(name => {
-                        const key = document.createElement('div'); key.classList.add('key'); key.style.height = '20px';
-                        if(name.includes('#')) key.classList.add('black');
-                        key.innerText = name + oct; keyboardEl.appendChild(key);
-                    });
+                octaves.forEach(oct => { 
+                    noteNames.forEach(name => { 
+                        const key = document.createElement('div'); 
+                        key.style.height = '20px'; key.classList.add('key');
+                        if(name.includes('#')) key.classList.add('black'); 
+                        key.innerText = name + oct; keyboardEl.appendChild(key); 
+                    }); 
                 });
             }
         }
 
         function updateEditorMasks() {
-            const maskL = document.getElementById('mask-left');
-            const maskR = document.getElementById('mask-right');
-            if(!currentSelectedBoxId || !boxRegistry[currentSelectedBoxId]) {
-                maskL.style.width = '0px'; maskR.style.left = '0px'; maskR.style.width = '100%'; return;
-            }
+            const maskL = document.getElementById('mask-left'); const maskR = document.getElementById('mask-right');
+            if(!currentSelectedBoxId || !boxRegistry[currentSelectedBoxId]) { maskL.style.width = '0px'; maskR.style.left = '0px'; maskR.style.width = '100%'; return; }
             const box = boxRegistry[currentSelectedBoxId];
-            const leftPx = box.x * zoomScale;
-            const widthPx = box.w * zoomScale;
-            const totalW = (currentMaxBars * 320) * zoomScale;
-
-            maskL.style.left = '0px'; maskL.style.width = `${leftPx}px`;
-            maskR.style.left = `${leftPx + widthPx}px`; maskR.style.width = `${totalW - (leftPx + widthPx)}px`;
+            maskL.style.width = `${box.x * zoomScale}px`; maskR.style.left = `${(box.x + box.w) * zoomScale}px`; maskR.style.width = '160000px'; 
         }
 
-        function checkAndAdjustBoxPosition(boxId, part, targetX, targetW) {
-            let x = Math.max(0, targetX);
-            let w = targetW;
-            const siblings = Object.values(boxRegistry).filter(b => b.part === part && b.id !== boxId);
-            for (let sibling of siblings) {
-                if (x < sibling.x && x + w > sibling.x) {
-                    w = sibling.x - x; 
-                }
-            }
-            for (let sibling of siblings) {
-                if (x >= sibling.x && x < sibling.x + sibling.w) {
-                    x = sibling.x + sibling.w; 
-                }
-            }
-            return { x, w };
-        }
+        function createTrackBox(part, startXInside) {
+            saveHistory();
+            let step = getStepWidth() / zoomScale; let alignedX = Math.floor(startXInside / step) * step;
+            const duplicate = Object.values(boxRegistry).find(b => b.part === part && Math.abs(b.x - alignedX) < 1);
+            if(duplicate) { selectBox(duplicate.id); return; }
 
-        function handleLaneClick(lane, part, event) {
-            if (event.target !== lane || isResizingActive) return;
+            boxCounter++; const boxId = `box-${boxCounter}`;
+            boxRegistry[boxId] = { id: boxId, part: part, x: alignedX, w: 320, name: `${part.toUpperCase()}-${boxCounter}`, notes: [] };
 
-            boxCounter++;
-            const boxId = `box-${boxCounter}`;
-            const rect = lane.getBoundingClientRect();
-            const clickX = (event.clientX - rect.left + timelineArea.scrollLeft) / zoomScale;
+            const box = document.createElement('div'); box.classList.add('midi-box'); box.id = boxId;
+            box.innerHTML = `<span class="box-title"></span><canvas class="box-preview-canvas"></canvas><div class="resizer-right"></div>`;
             
-            const step = getStepWidth() / zoomScale;
-            let alignedX = Math.floor(clickX / step) * step;
-            let defaultWidth = 320; 
+            setupUnifiedDrag(box, boxRegistry[boxId], true);
+            box.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if(currentTool === 'eraser') { saveHistory(); delete boxRegistry[boxId]; box.remove(); if(currentSelectedBoxId===boxId) selectBox(null); } else { selectBox(boxId); }
+            });
+            box.addEventListener('contextmenu', (e) => { e.preventDefault(); saveHistory(); delete boxRegistry[boxId]; box.remove(); if(currentSelectedBoxId===boxId) selectBox(null); });
+            box.querySelector('.resizer-right').addEventListener('mousedown', (e) => startBoxResize(e, box, boxRegistry[boxId]));
+            box.querySelector('.resizer-right').addEventListener('touchstart', (e) => startBoxResize(e, box, boxRegistry[boxId]), {passive:false});
 
-            ensureTimelineLength(alignedX + defaultWidth);
-
-            const clamped = checkAndAdjustBoxPosition(boxId, part, alignedX, defaultWidth);
-            if (clamped.w < step) {
-                boxCounter--;
-                return;
-            }
-
-            boxRegistry[boxId] = {
-                id: boxId, part: part, x: clamped.x, w: clamped.w,
-                name: `${part.toUpperCase()}-${boxCounter}`, notes: []
-            };
-
-            const box = document.createElement('div');
-            box.classList.add('midi-box'); box.id = boxId;
-            box.style.left = `${clamped.x * zoomScale}px`;
-            box.style.width = `${clamped.w * zoomScale}px`;
-            
-            const titleSpan = document.createElement('span'); titleSpan.classList.add('box-title');
-            box.appendChild(titleSpan);
-
-            const previewCanvas = document.createElement('canvas'); previewCanvas.classList.add('box-preview-canvas');
-            box.appendChild(previewCanvas);
-
-            box.addEventListener('mousedown', (e) => makeDraggable(e, box, boxRegistry[boxId], true));
-            box.addEventListener('click', (e) => { e.stopPropagation(); selectBox(boxId); });
-            
-            box.oncontextmenu = (e) => { 
-                e.preventDefault(); delete boxRegistry[boxId]; box.remove(); 
-                if(currentSelectedBoxId===boxId) selectBox(null); 
-            };
-
-            const resizer = document.createElement('div'); resizer.classList.add('resizer-right');
-            resizer.addEventListener('mousedown', (e) => makeResizable(e, box, boxRegistry[boxId], true));
-            box.appendChild(resizer);
-
-            lane.appendChild(box);
-            selectBox(boxId);
-            updateBoxUI(boxRegistry[boxId]);
+            document.getElementById(`lane-${part}`).appendChild(box); selectBox(boxId);
         }
 
         function updateBoxUI(boxData) {
-            const boxEl = document.getElementById(boxData.id);
-            if(!boxEl) return;
-            boxEl.style.left = `${boxData.x * zoomScale}px`;
-            boxEl.style.width = `${boxData.w * zoomScale}px`;
-            boxEl.querySelector('.box-title').innerText = boxData.name;
-            drawMiniPreview(boxData, boxEl.querySelector('.box-preview-canvas'));
-        }
-
-        function refreshAllBoxesUI() {
-            Object.values(boxRegistry).forEach(updateBoxUI);
-        }
-
-        function drawMiniPreview(boxData, canvas) {
-            if(!canvas) return;
-            canvas.width = Math.max(boxData.w * zoomScale, 50); canvas.height = 24;
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-
-            const maxRow = boxData.part === 'drum' ? 4 : totalKeys;
-            boxData.notes.forEach(note => {
-                const nx = (note.x / boxData.w) * canvas.width;
-                const nw = (note.w / boxData.w) * canvas.width;
-                const rowIdx = boxData.part === 'drum' ? Math.floor(note.y / 40) : Math.floor(note.y / 20);
-                ctx.fillRect(nx, (rowIdx / maxRow) * canvas.height, Math.max(nw - 1, 2), 2);
-            });
-        }
-
-        function makeDraggable(e, element, dataObj, isBox) {
-            if (e.target.classList.contains('resizer-right')) return;
-            e.stopPropagation();
+            const boxEl = document.getElementById(boxData.id); if(!boxEl) return;
+            boxEl.style.left = `${boxData.x * zoomScale}px`; boxEl.style.width = `${boxData.w * zoomScale}px`;
             
-            if (!isBox && currentTool === 'select') return; 
-            if (!isBox) saveHistory(); 
+            let emojiPrefix = "🎵 ";
+            if(boxData.part === 'drum') emojiPrefix = "🥁 ";
+            if(boxData.part === 'melody') emojiPrefix = "🎹 ";
+            if(boxData.part === 'chord') emojiPrefix = "🎸 ";
+            if(boxData.part === 'bass') emojiPrefix = "🎻 ";
+            boxEl.querySelector('.box-title').innerText = emojiPrefix + boxData.name;
 
-            let startX = e.clientX;
-            let startY = e.clientY;
-            let initialX = dataObj.x;
-            let initialY = dataObj.y || 0;
-            const step = getStepWidth() / zoomScale; 
-
-            function onMove(me) {
-                let dx = (me.clientX - startX) / zoomScale;
-                let newX = Math.max(0, Math.round((initialX + dx) / step) * step);
-
-                if (isBox) {
-                    ensureTimelineLength(newX + dataObj.w); 
-                    const clamped = checkAndAdjustBoxPosition(dataObj.id, dataObj.part, newX, dataObj.w);
-                    dataObj.x = clamped.x;
-                    element.style.left = `${clamped.x * zoomScale}px`;
-                    updateEditorMasks();
-                } else {
-                    const parentBox = boxRegistry[currentSelectedBoxId];
-                    if(newX < 0) newX = 0;
-                    if(newX + dataObj.w > parentBox.w) newX = parentBox.w - dataObj.w;
-                    
-                    dataObj.x = newX;
-                    element.style.left = `${(parentBox.x + newX) * zoomScale}px`;
-
-                    let dy = me.clientY - startY;
-                    const rH = currentPart === 'drum' ? 40 : 20;
-                    const maxH = currentPart === 'drum' ? drumNotes.length * 40 : totalKeys * 20;
-                    let newY = Math.max(0, Math.min(maxH - rH, Math.floor((initialY + dy) / rH) * rH));
-                    element.style.top = `${newY + 2}px`;
-                    dataObj.y = newY;
-                }
-            }
-
-            function onEnd() {
-                window.removeEventListener('mousemove', onMove);
-                window.removeEventListener('mouseup', onEnd);
-                if(!isBox) triggerNoteSound(dataObj.y);
-                else updateBoxUI(dataObj);
-            }
-            window.addEventListener('mousemove', onMove);
-            window.addEventListener('mouseup', onEnd);
-        }
-
-        function makeResizable(e, element, dataObj, isBox) {
-            e.stopPropagation();
-            isResizingActive = true;
-            if (!isBox) saveHistory(); 
-            
-            let startX = e.clientX;
-            let startW = dataObj.w;
-            const step = getStepWidth() / zoomScale;
-
-            function onMove(me) {
-                let dx = (me.clientX - startX) / zoomScale;
-                let newW = Math.max(step, Math.round((startW + dx) / step) * step);
-
-                if(isBox) {
-                    ensureTimelineLength(dataObj.x + newW); 
-                    const clamped = checkAndAdjustBoxPosition(dataObj.id, dataObj.part, dataObj.x, newW);
-                    dataObj.w = clamped.w; 
-                    element.style.width = `${clamped.w * zoomScale}px`;
-                    updateEditorMasks();
-                } else {
-                    const parentBox = boxRegistry[currentSelectedBoxId];
-                    if(dataObj.x + newW > parentBox.w) newW = parentBox.w - dataObj.x;
-                    dataObj.w = newW; element.style.width = `${newW * zoomScale - 2}px`;
-                }
-            }
-
-            function onEnd() {
-                window.removeEventListener('mousemove', onMove);
-                window.removeEventListener('mouseup', onEnd);
-                setTimeout(() => { isResizingActive = false; }, 60);
-                if(isBox) updateBoxUI(dataObj);
-                else if(currentSelectedBoxId) updateBoxUI(boxRegistry[currentSelectedBoxId]);
-            }
-            window.addEventListener('mousemove', onMove);
-            window.addEventListener('mouseup', onEnd);
-        }
-
-        function triggerNoteSound(yPosition) {
-            if (currentPart === 'drum') {
-                const idx = Math.floor(yPosition / 40);
-                if (drumNotes[idx]) playTone(0, 0.2, 'drum', drumNotes[idx]);
-            } else {
-                const noteInfo = freqMap[Math.floor(yPosition / 20)];
-                if(noteInfo) playTone(noteInfo.freq, 0.2, currentPart, noteInfo.name);
+            const canvas = boxEl.querySelector('.box-preview-canvas');
+            if(canvas) {
+                canvas.width = Math.max(boxData.w * zoomScale, 40); canvas.height = 16;
+                const ctx = canvas.getContext('2d'); ctx.fillStyle = 'rgba(255,255,255,0.75)';
+                const maxRow = boxData.part === 'drum' ? 4 : totalKeys;
+                boxData.notes.forEach(n => {
+                    const nx = (n.x / boxData.w) * canvas.width; const nw = (n.w / boxData.w) * canvas.width;
+                    const rIdx = boxData.part === 'drum' ? Math.floor(n.y / 40) : Math.floor(n.y / 20);
+                    ctx.fillRect(nx, (rIdx / maxRow) * 16, Math.max(nw, 2), 2);
+                });
             }
         }
-
-        function handleGridMouseDown(e) {
-            if (!currentSelectedBoxId || isResizingActive) return;
-            if (e.target !== gridEl) return;
-
-            const rect = gridEl.getBoundingClientRect();
-            const startGridX = (e.clientX - rect.left) / zoomScale;
-            const startGridY = e.clientY - rect.top;
-            const parentBox = boxRegistry[currentSelectedBoxId];
-
-            if (currentTool === 'pencil') {
-                if (startGridX < parentBox.x || startGridX >= (parentBox.x + parentBox.w)) return;
-                saveHistory(); 
-
-                const step = 320 / (parseInt(document.getElementById('quantize').value) || 16);
-                const clickXInsideBox = startGridX - parentBox.x;
-                const noteXInside = Math.floor(clickXInsideBox / step) * step; 
-                
-                const rowH = currentPart === 'drum' ? 40 : 20;
-                const gridY = Math.floor(startGridY / rowH) * rowH;
-
-                const noteId = `note-${Date.now()}`;
-                const newNote = { id: noteId, x: noteXInside, y: gridY, w: step, selected: false };
-
-                parentBox.notes.push(newNote);
-                const noteEl = drawNote(newNote);
-                triggerNoteSound(gridY);
-
-                function onPencilDrag(me) {
-                    const currentRect = gridEl.getBoundingClientRect();
-                    const currentGridX = (me.clientX - currentRect.left) / zoomScale;
-                    const insideXEnd = Math.max(noteXInside + step, currentGridX - parentBox.x);
-                    let newW = Math.floor(insideXEnd / step) * step - noteXInside;
-                    if (newW < step) newW = step;
-                    if (noteXInside + newW > parentBox.w) newW = parentBox.w - noteXInside;
-                    
-                    newNote.w = newW;
-                    if (noteEl) noteEl.style.width = `${newW * zoomScale - 2}px`;
-                }
-
-                function onPencilUp() {
-                    window.removeEventListener('mousemove', onPencilDrag);
-                    window.removeEventListener('mouseup', onPencilUp);
-                    updateBoxUI(parentBox); 
-                }
-                window.addEventListener('mousemove', onPencilDrag);
-                window.addEventListener('mouseup', onPencilUp);
-
-            } else if (currentTool === 'select') {
-                e.preventDefault();
-                if (!e.shiftKey) {
-                    parentBox.notes.forEach(n => n.selected = false);
-                    document.querySelectorAll('.piano-note').forEach(el => el.classList.remove('selected'));
-                }
-
-                const marquee = document.createElement('div');
-                marquee.classList.add('selection-marquee');
-                gridEl.appendChild(marquee);
-
-                function onSelectDrag(me) {
-                    const currentRect = gridEl.getBoundingClientRect();
-                    const currentGridX = (me.clientX - currentRect.left) / zoomScale;
-                    const currentGridY = me.clientY - currentRect.top;
-
-                    const x = Math.min(startGridX, currentGridX);
-                    const y = Math.min(startGridY, currentGridY);
-                    const w = Math.abs(startGridX - currentGridX);
-                    const h = Math.abs(startGridY - currentGridY);
-
-                    marquee.style.left = `${x * zoomScale}px`; marquee.style.top = `${y}px`;
-                    marquee.style.width = `${w * zoomScale}px`; marquee.style.height = `${h}px`;
-
-                    parentBox.notes.forEach(note => {
-                        const noteAbsX = parentBox.x + note.x;
-                        const noteAbsY = note.y;
-                        const noteWidth = note.w;
-                        const noteHeight = currentPart === 'drum' ? 40 : 20;
-
-                        const isOverlapping = (
-                            x < noteAbsX + noteWidth && x + w > noteAbsX &&
-                            y < noteAbsY + noteHeight && y + h > noteAbsY
-                        );
-
-                        note.selected = isOverlapping;
-                        const noteEl = document.getElementById(note.id);
-                        if (noteEl) {
-                            if (note.selected) noteEl.classList.add('selected');
-                            else noteEl.classList.remove('selected');
-                        }
-                    });
-                }
-
-                function onSelectUp() {
-                    marquee.remove();
-                    window.removeEventListener('mousemove', onSelectDrag);
-                    window.removeEventListener('mouseup', onSelectUp);
-                }
-                window.addEventListener('mousemove', onSelectDrag);
-                window.addEventListener('mouseup', onSelectUp);
-            }
-        }
-
-        function drawNote(noteData) {
-            const parentBox = boxRegistry[currentSelectedBoxId];
-            if(!parentBox) return null;
-
-            const note = document.createElement('div');
-            note.classList.add('piano-note'); note.id = noteData.id;
-            
-            const absoluteX = (parentBox.x + noteData.x) * zoomScale;
-            note.style.left = `${absoluteX}px`;
-            note.style.top = `${noteData.y + 2}px`;
-            note.style.width = `${noteData.w * zoomScale - 2}px`;
-            note.style.height = `${currentPart === 'drum' ? 36 : 16}px`;
-            if (noteData.selected) note.classList.add('selected');
-            
-            note.addEventListener('mousedown', (e) => {
-                if (currentTool === 'select') {
-                    e.stopPropagation();
-                    noteData.selected = !noteData.selected;
-                    note.classList.toggle('selected');
-                } else {
-                    makeDraggable(e, note, noteData, false);
-                }
-            });
-
-            note.oncontextmenu = (e) => {
-                e.preventDefault(); e.stopPropagation();
-                if (currentTool !== 'pencil') return;
-                saveHistory();
-                parentBox.notes = parentBox.notes.filter(n => n.id !== noteData.id);
-                note.remove(); updateBoxUI(parentBox);
-            };
-
-            const resizer = document.createElement('div'); resizer.classList.add('resizer-right');
-            resizer.addEventListener('mousedown', (e) => {
-                if (currentTool === 'pencil') makeResizable(e, note, noteData, false);
-            });
-            note.appendChild(resizer);
-
-            gridEl.appendChild(note);
-            return note;
-        }
+        function refreshAllBoxesUI() { Object.values(boxRegistry).forEach(updateBoxUI); }
 
         function refreshEditorContainer() {
             gridEl.querySelectorAll('.piano-note').forEach(n => n.remove());
-            if (currentSelectedBoxId && boxRegistry[currentSelectedBoxId]) {
-                boxRegistry[currentSelectedBoxId].notes.forEach(drawNote);
-            }
+            if (currentSelectedBoxId && boxRegistry[currentSelectedBoxId]) { boxRegistry[currentSelectedBoxId].notes.forEach(drawNote); }
             updateEditorMasks();
         }
 
         function selectBox(boxId) {
-            currentSelectedBoxId = boxId;
-            document.querySelectorAll('.midi-box').forEach(b => b.classList.remove('selected'));
-
+            currentSelectedBoxId = boxId; document.querySelectorAll('.midi-box').forEach(b => b.classList.remove('selected'));
             if (boxId && boxRegistry[boxId]) {
-                const box = boxRegistry[boxId];
-                document.getElementById(boxId).classList.add('selected');
-                currentPart = box.part;
-                document.getElementById('current-box-title').innerText = `編集中のボックス: ${box.name}`;
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.getElementById(`tab-${currentPart}`).classList.add('active');
+                const box = boxRegistry[boxId]; document.getElementById(boxId).classList.add('selected');
+                currentPart = box.part; document.getElementById('current-box-title').innerText = `編集: ${box.name}`;
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); document.getElementById(`tab-${currentPart}`).classList.add('active');
+            } else { document.getElementById('current-box-title').innerText = `ボックス未選択`; }
+            updateGridPattern(); refreshEditorContainer();
+        }
+
+        function switchTab(part) { const found = Object.values(boxRegistry).find(b => b.part === part); currentPart = part; selectBox(found ? found.id : null); }
+
+        function setupUnifiedDrag(element, dataObj, isBox) {
+            let startX = 0, startY = 0, initialX = 0, initialY = 0; let noteSnapshot = []; 
+
+            const onStart = (e) => {
+                if(currentTool === 'eraser' && !isBox) return; 
+                if(e.button === 2) return; 
+                const touch = e.touches ? e.touches[0] : e;
+                if(e.target.classList.contains('resizer-right')) return;
+                
+                if(!isBox && currentTool === 'select' && !dataObj.selected) {
+                    const parent = boxRegistry[currentSelectedBoxId]; parent.notes.forEach(n => n.selected = false);
+                    dataObj.selected = true; document.querySelectorAll('.piano-note').forEach(el => el.classList.remove('selected')); element.classList.add('selected');
+                }
+
+                e.stopPropagation(); startX = touch.clientX; startY = touch.clientY; initialX = dataObj.x; initialY = dataObj.y || 0;
+
+                if(!isBox) {
+                    const parent = boxRegistry[currentSelectedBoxId];
+                    noteSnapshot = parent.notes.filter(n => n.selected).map(n => ({ note: n, initX: n.x, initY: n.y }));
+                    if(noteSnapshot.length === 0) { noteSnapshot = [{ note: dataObj, initX: dataObj.x, initY: dataObj.y }]; }
+                }
+                window.addEventListener(e.touches ? 'touchmove' : 'mousemove', onMove, {passive:false});
+                window.addEventListener(e.touches ? 'touchend' : 'mouseup', onEnd);
+            };
+
+            const onMove = (me) => {
+                me.preventDefault(); const touch = me.touches ? me.touches[0] : me;
+                const dx = (touch.clientX - startX) / zoomScale; const dy = touch.clientY - startY;
+                const step = getStepWidth() / zoomScale; const rH = currentPart === 'drum' ? 40 : 20;
+
+                if (isBox) {
+                    let newX = Math.max(0, Math.round((initialX + dx) / step) * step);
+                    dataObj.x = newX; element.style.left = `${newX * zoomScale}px`; updateEditorMasks();
+                } else {
+                    const parent = boxRegistry[currentSelectedBoxId];
+                    const gridSnapXShift = Math.round(dx / step) * step; const gridSnapYShift = Math.round(dy / rH) * rH;
+
+                    noteSnapshot.forEach(snap => {
+                        let targetX = snap.initX + gridSnapXShift; let targetY = snap.initY + gridSnapYShift;
+                        if(targetX < 0) targetX = 0; if(targetX + snap.note.w > parent.w) targetX = parent.w - snap.note.w;
+                        const maxH = currentPart === 'drum' ? drumNotes.length * 40 : totalKeys * 20;
+                        if(targetY < 0) targetY = 0; if(targetY > maxH - rH) targetY = maxH - rH;
+
+                        snap.note.x = targetX; snap.note.y = targetY;
+                        const el = document.getElementById(snap.note.id);
+                        if(el) { el.style.left = `${(parent.x + targetX) * zoomScale}px`; el.style.top = `${targetY + 2}px`; }
+                    });
+                }
+            };
+
+            const onEnd = (ee) => {
+                saveHistory(); window.removeEventListener('mousemove', onMove); window.removeEventListener('touchmove', onMove);
+                window.removeEventListener('mouseup', onEnd); window.removeEventListener('touchend', onEnd);
+                if(isBox) updateBoxUI(dataObj); else { triggerNoteSound(dataObj.y, currentPart); updateBoxUI(boxRegistry[currentSelectedBoxId]); }
+            };
+            element.addEventListener('mousedown', onStart); element.addEventListener('touchstart', onStart, {passive:false});
+        }
+
+        function startBoxResize(e, element, dataObj) {
+            e.stopPropagation(); e.preventDefault(); isResizingActive = true;
+            const touch = e.touches ? e.touches[0] : e; let startX = touch.clientX; let startW = dataObj.w; let step = getStepWidth() / zoomScale;
+            const onMove = (me) => {
+                const t = me.touches ? me.touches[0] : me; let dx = (t.clientX - startX) / zoomScale;
+                dataObj.w = Math.max(step, Math.round((startW + dx) / step) * step); element.style.width = `${dataObj.w * zoomScale}px`; updateEditorMasks();
+            };
+            const onEnd = (ee) => {
+                saveHistory(); window.removeEventListener('mousemove', onMove); window.removeEventListener('touchmove', onMove);
+                window.removeEventListener('mouseup', onEnd); window.removeEventListener('touchend', onEnd);
+                setTimeout(() => { isResizingActive = false; }, 100); updateBoxUI(dataObj);
+            };
+            window.addEventListener(e.touches?'touchmove':'mousemove', onMove, {passive:false}); window.addEventListener(e.touches?'touchend':'mouseup', onEnd);
+        }
+
+        function triggerNoteSound(yPosition, forcePart = null) {
+            const targetPart = forcePart || currentPart;
+            if (targetPart === 'drum') {
+                const idx = Math.floor(yPosition / 40); if (drumNotes[idx]) playTone(0, 0.2, 'drum', drumNotes[idx]);
             } else {
-                document.getElementById('current-box-title').innerText = `選択中のボックス: なし`;
+                const noteInfo = freqMap[Math.floor(yPosition / 20)]; if(noteInfo) playTone(noteInfo.freq, 0.2, targetPart, noteInfo.name);
             }
-            updateGridPattern(); 
-            refreshEditorContainer();
         }
 
-        function switchTab(part) {
-            const found = Object.values(boxRegistry).find(b => b.part === part);
-            currentPart = part;
-            selectBox(found ? found.id : null);
+        function drawNote(noteData) {
+            const parent = boxRegistry[currentSelectedBoxId]; if(!parent) return null;
+            const note = document.createElement('div'); note.classList.add('piano-note'); note.id = noteData.id;
+            note.style.left = `${(parent.x + noteData.x) * zoomScale}px`; note.style.top = `${noteData.y + 2}px`;
+            note.style.width = `${noteData.w * zoomScale - 2}px`; note.style.height = `${currentPart === 'drum' ? 36 : 16}px`;
+            if (noteData.selected) note.classList.add('selected');
+
+            const removeAction = () => {
+                saveHistory(); parent.notes = parent.notes.filter(n => n.id !== noteData.id); note.remove(); updateBoxUI(parent);
+            };
+
+            note.addEventListener('click', (e) => { if(currentTool === 'eraser') { e.stopPropagation(); removeAction(); } });
+            note.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); removeAction(); });
+
+            const rsz = document.createElement('div'); rsz.classList.add('resizer-right');
+            const onRszStart = (e) => {
+                if(currentTool === 'eraser' || e.button === 2) return; e.stopPropagation(); e.preventDefault();
+                const t = e.touches ? e.touches[0] : e; let startX = t.clientX; let startW = noteData.w; let step = getStepWidth() / zoomScale;
+                const onMv = (me) => {
+                    const mt = me.touches ? me.touches[0] : me; let dx = (mt.clientX - startX) / zoomScale;
+                    let nw = Math.max(step, Math.round((startW + dx) / step) * step);
+                    if(noteData.x + nw > parent.w) nw = parent.w - noteData.x; noteData.w = nw; note.style.width = `${nw * zoomScale - 2}px`;
+                };
+                const onEd = (ee) => {
+                    saveHistory(); window.removeEventListener('mousemove', onMv); window.removeEventListener('touchmove', onMv);
+                    window.removeEventListener('mouseup', onEd); window.removeEventListener('touchend', onEd); updateBoxUI(parent);
+                };
+                window.addEventListener(e.touches?'touchmove':'mousemove', onMv, {passive:false}); window.addEventListener(e.touches?'touchend':'mouseup', onEd);
+            };
+            rsz.addEventListener('mousedown', onRszStart); rsz.addEventListener('touchstart', onRszStart, {passive:false});
+            note.appendChild(rsz); setupUnifiedDrag(note, noteData, false); gridEl.appendChild(note); return note;
         }
 
-        function setPlayheadByClick(e, isTimeline) {
-            const container = isTimeline ? document.getElementById('ruler-container') : document.getElementById('editor-ruler-container');
-            const rect = container.getBoundingClientRect();
-            const scrollLeft = isTimeline ? timelineArea.scrollLeft : editorScroll.scrollLeft;
-            
-            const containerLeftAbsolute = rect.left;
-            const clickXInContainer = e.clientX - containerLeftAbsolute + scrollLeft;
-            
-            const step = getStepWidth() / zoomScale; 
-            let alignedX = Math.round((clickXInContainer / zoomScale) / step) * step; 
-            
-            playX = Math.max(0, alignedX); 
+        gridEl.addEventListener('mousedown', (e) => { if(e.button !== 2) handleGridStart(e, false); });
+        gridEl.addEventListener('touchstart', (e) => handleGridStart(e, true), {passive:false});
 
-            ensureTimelineLength(playX);
+        function handleGridStart(e, isTouch) {
+            if (!currentSelectedBoxId || isResizingActive) return; if (e.target !== gridEl) return;
+            
+            const touch = isTouch ? e.touches[0] : e; const rect = gridEl.getBoundingClientRect();
+            const gridX = (touch.clientX - rect.left) / zoomScale; const gridY = touch.clientY - rect.top;
+            const parent = boxRegistry[currentSelectedBoxId];
 
-            if(isPlaying) {
-                const bpm = parseFloat(document.getElementById('tempo').value) || 120;
-                playheadTime = (playX / 80) * (60.0 / bpm);
+            if(currentTool === 'pencil') {
+                if (gridX < parent.x || gridX >= (parent.x + parent.w)) return;
+                const quantizeVal = parseInt(document.getElementById('quantize').value) || 16;
+                const step = 320 / quantizeVal;
+                const noteX = Math.floor((gridX - parent.x) / step) * step;
+                const rowH = currentPart === 'drum' ? 40 : 20; const noteY = Math.floor(gridY / rowH) * rowH;
+
+                const duplicate = parent.notes.find(n => Math.abs(n.x - noteX) < 1 && Math.abs(n.y - noteY) < 1);
+                if(duplicate) return;
+
+                saveHistory();
+                const nId = `note-${Date.now()}`; const newNote = { id: nId, x: noteX, y: noteY, w: step, selected: false };
+                parent.notes.push(newNote); 
+                const noteElement = drawNote(newNote); 
+                triggerNoteSound(noteY, parent.part);
+                updateBoxUI(parent);
+
+                const onNoteResizeDrag = (me) => {
+                    const mt = me.touches ? me.touches[0] : me;
+                    const curGridX = (mt.clientX - rect.left) / zoomScale; const curXInside = curGridX - parent.x;
+                    if (curXInside > noteX) {
+                        let newW = Math.ceil((curXInside - noteX) / step) * step;
+                        if (noteX + newW > parent.w) newW = parent.w - noteX;
+                        newNote.w = newW;
+                        if (noteElement) noteElement.style.width = `${newW * zoomScale - 2}px`;
+                    }
+                };
+                const onNoteResizeUp = () => {
+                    window.removeEventListener('mousemove', onNoteResizeDrag); window.removeEventListener('touchmove', onNoteResizeDrag);
+                    window.removeEventListener('mouseup', onNoteResizeUp); window.removeEventListener('touchend', onNoteResizeUp);
+                    updateBoxUI(parent);
+                };
+                window.addEventListener(isTouch ? 'touchmove' : 'mousemove', onNoteResizeDrag, {passive:false});
+                window.addEventListener(isTouch ? 'touchend' : 'mouseup', onNoteResizeUp);
+
+            } else if (currentTool === 'select') {
+                e.preventDefault(); const marquee = document.createElement('div'); marquee.classList.add('selection-marquee'); gridEl.appendChild(marquee);
+                if(!e.shiftKey) { parent.notes.forEach(n => n.selected = false); document.querySelectorAll('.piano-note').forEach(el => el.classList.remove('selected')); }
+
+                const onDrag = (me) => {
+                    const mt = me.touches ? me.touches[0] : me;
+                    const curX = (mt.clientX - rect.left) / zoomScale; const curY = mt.clientY - rect.top;
+                    const mx = Math.min(gridX, curX); const my = Math.min(gridY, curY); const mw = Math.abs(gridX - curX); const mh = Math.abs(gridY - curY);
+                    marquee.style.left = `${mx * zoomScale}px`; marquee.style.top = `${my}px`; marquee.style.width = `${mw * zoomScale}px`; marquee.style.height = `${mh}px`;
+
+                    parent.notes.forEach(n => {
+                        const absX = parent.x + n.x; const absY = n.y;
+                        const isOver = (mx < absX + n.w && mx + mw > absX && my < absY + (currentPart==='drum'?40:20) && my + mh > absY);
+                        n.selected = isOver; const el = document.getElementById(n.id);
+                        if(el) { if(isOver) el.classList.add('selected'); else el.classList.remove('selected'); }
+                    });
+                };
+                const onUp = (ee) => {
+                    marquee.remove(); window.removeEventListener('mousemove', onDrag); window.removeEventListener('touchmove', onDrag);
+                    window.removeEventListener('mouseup', onUp); window.removeEventListener('touchend', onUp);
+                };
+                window.addEventListener(isTouch?'touchmove':'mousemove', onDrag, {passive:false}); window.addEventListener(isTouch?'touchend':'mouseup', onUp);
             }
-
-            updatePlayheadUI();
         }
+
+        ['drum','melody','chord','bass'].forEach(p => {
+            const lane = document.getElementById(`lane-${p}`);
+            lane.addEventListener('click', (e) => { 
+                if(e.target === lane) { const rect = lane.getBoundingClientRect(); createTrackBox(p, (e.clientX - rect.left + timelineArea.scrollLeft)/zoomScale); } 
+            });
+        });
+
+        function setupHeaderScroller(triggerEl, targetScrollContainer, isTimelineX) {
+            let startX = 0, startY = 0, startScrollLeft = 0, startScrollTop = 0, isDragging = false;
+            const onStart = (e) => {
+                if(e.target.classList.contains('midi-box') || e.target.classList.contains('piano-note') || e.target.tagName === 'SELECT') return;
+                isDragging = true; const touch = e.touches ? e.touches[0] : e;
+                startX = touch.clientX; startY = touch.clientY;
+                startScrollLeft = targetScrollContainer.scrollLeft; startScrollTop = targetScrollContainer.scrollTop;
+                window.addEventListener(e.touches ? 'touchmove' : 'mousemove', onMove, {passive:false});
+                window.addEventListener(e.touches ? 'touchend' : 'mouseup', onEnd);
+            };
+            const onMove = (me) => {
+                if(!isDragging) return; me.preventDefault(); const touch = me.touches ? me.touches[0] : me;
+                targetScrollContainer.scrollLeft = startScrollLeft - (touch.clientX - startX);
+                if(!isTimelineX) { targetScrollContainer.scrollTop = startScrollTop - (touch.clientY - startY); }
+            };
+            const onEnd = () => { isDragging = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('touchmove', onMove); };
+            triggerEl.addEventListener('mousedown', onStart); triggerEl.addEventListener('touchstart', onStart, {passive:false});
+        }
+        document.querySelectorAll('.track-header').forEach(header => setupHeaderScroller(header, timelineArea, true));
+        setupHeaderScroller(keyboardEl, editorScroll, false);
+
+        function setupRulerClick(containerId, isTimeline) {
+            const el = document.getElementById(containerId);
+            const moveHead = (e) => {
+                const touch = e.touches ? e.touches[0] : e; const rect = el.getBoundingClientRect(); const clickXOnScreen = touch.clientX - rect.left;
+                const headerWidth = isTimeline ? 120 : 60; if (clickXOnScreen < headerWidth) return;
+                const scrollOffset = isTimeline ? timelineArea.scrollLeft : editorScroll.scrollLeft;
+                const absoluteVisualX = (clickXOnScreen - headerWidth) + scrollOffset;
+                let targetDataX = absoluteVisualX / zoomScale; if(targetDataX < 0) targetDataX = 0;
+                const step = 320 / (parseInt(document.getElementById('quantize').value) || 16);
+                playX = Math.round(targetDataX / step) * step; updatePlayheadUI();
+            };
+            el.addEventListener('mousedown', (e) => { moveHead(e); const mv = (me)=>{moveHead(me);}; const up = ()=>{window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up);}; window.addEventListener('mousemove',mv); window.addEventListener('mouseup',up); });
+            el.addEventListener('touchstart', (e) => { moveHead(e); const mv = (me)=>{moveHead(me);}; const up = ()=>{window.removeEventListener('touchmove',mv); window.removeEventListener('touchend',up);}; window.addEventListener('touchmove',mv,{passive:false}); window.addEventListener('touchend',up); }, {passive:false});
+        }
+        setupRulerClick('ruler-container', true); setupRulerClick('editor-ruler-container', false);
 
         function updatePlayheadUI() {
-            const currentSmoothPlayX = playX * zoomScale; 
-            document.getElementById('timeline-playhead').style.left = `${currentSmoothPlayX + 150}px`;
-            document.getElementById('editor-playhead').style.left = `${currentSmoothPlayX + 70}px`; 
+            const visualX = playX * zoomScale;
+            const tHead = document.getElementById('timeline-playhead'); if (tHead) tHead.style.transform = `translateX(${visualX}px)`;
+            const eHead = document.getElementById('editor-playhead'); if (eHead) eHead.style.transform = `translateX(${visualX}px)`;
         }
-
-        let playheadTime = 0.0; 
 
         function togglePlay() {
-            isPlaying = !isPlaying;
-            document.getElementById('btn-play').innerText = isPlaying ? "⏸ Pause [Space]" : "▶ Play [Space]";
-            if(isPlaying) {
-                if(audioCtx.state === 'suspended') audioCtx.resume();
-                
-                const bpm = parseFloat(document.getElementById('tempo').value) || 120;
-                const secondsPerBeat = 60.0 / bpm;
-                
-                const currentBeat = playX / 80; 
-                playheadTime = currentBeat * secondsPerBeat; 
-                
-                lastFrameTime = performance.now();
-                requestAnimationFrame(playLoop);
-            }
+            isPlaying = !isPlaying; document.getElementById('btn-play').innerText = isPlaying ? "⏸一時停止" : "▶再生";
+            if(isPlaying) { lastFrameTime = performance.now(); requestAnimationFrame(playLoop); }
         }
+        document.getElementById('btn-play').addEventListener('click', togglePlay);
+        document.getElementById('btn-stop').addEventListener('click', () => { isPlaying = false; document.getElementById('btn-play').innerText = "▶再生"; });
+        document.getElementById('btn-reset').addEventListener('click', () => { playX = 0; updatePlayheadUI(); });
 
         function playLoop(now) {
-            if (!isPlaying) return;
-            const delta = (now - lastFrameTime) / 1000; 
-            lastFrameTime = now;
-
+            if (!isPlaying) return; const delta = (now - lastFrameTime) / 1000; lastFrameTime = now;
             const bpm = parseFloat(document.getElementById('tempo').value) || 120;
-            const secondsPerBeat = 60.0 / bpm;
-
-            const prevTime = playheadTime;
-            playheadTime += delta;
-            playX = (playheadTime / secondsPerBeat) * 80; 
-
-            ensureTimelineLength(playX);
-            updatePlayheadUI(); 
+            const secPerBeat = 60.0 / bpm; const prevPlayX = playX;
+            playX += (delta / secPerBeat) * 80; if(playX > currentMaxBars * 320) playX = 0; updatePlayheadUI();
 
             Object.values(boxRegistry).forEach(box => {
-                box.notes.forEach(note => {
-                    const absNoteX = box.x + note.x;
-                    const noteBeat = absNoteX / 80;
-                    const noteTime = noteBeat * secondsPerBeat;
-
-                    if (noteTime >= prevTime && noteTime < playheadTime) {
-                        const duration = (note.w / 80) * secondsPerBeat;
+                box.notes.forEach(n => {
+                    const ax = box.x + n.x;
+                    if(ax >= prevPlayX && ax < playX) {
+                        const duration = (n.w / 80) * secPerBeat;
                         if(box.part === 'drum') {
-                            const rowIdx = Math.floor(note.y / 40);
-                            const drumName = drumNotes[rowIdx];
-                            playTone(0, duration, 'drum', drumName);
-                        } else {
-                            const noteInfo = freqMap[Math.floor(note.y / 20)];
-                            if(noteInfo) playTone(noteInfo.freq, duration, box.part, noteInfo.name);
+                            const idx = Math.floor(n.y / 40); if (drumNotes[idx]) playTone(0, duration, 'drum', drumNotes[idx]);
+                        }
+                        else {
+                            const inf = freqMap[Math.floor(n.y / 20)]; if(inf) playTone(inf.freq, duration, box.part, inf.name);
                         }
                     }
                 });
             });
-
             requestAnimationFrame(playLoop);
         }
 
-        // ==========================================
-        // 🛠️ MIDI EXPORT SYSTEM (バイナリ自動生成)
-        // ==========================================
-        function dvWriteStr(dv, offset, str) {
-            for (let i = 0; i < str.length; i++) {
-                dv.setUint8(offset + i, str.charCodeAt(i));
-            }
-            return offset + str.length;
+        function setTool(toolName) {
+            currentTool = toolName; document.querySelectorAll('.controls button[id^="tool-"]').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tool-${toolName}`).classList.add('active');
         }
+        document.getElementById('tool-pencil').addEventListener('click', () => setTool('pencil'));
+        document.getElementById('tool-select').addEventListener('click', () => setTool('select'));
+        document.getElementById('tool-eraser').addEventListener('click', () => setTool('eraser'));
 
-        function writeVarInt(bytes, val) {
-            let buffer = [];
-            buffer.push(val & 0x7F);
-            while (val >> 7 > 0) {
-                val >>>= 7;
-                buffer.push((val & 0x7F) | 0x80);
-            }
-            buffer.reverse().forEach(b => bytes.push(b));
-        }
+        let distStart = 0, scaleStart = 1.0;
+        const onPinchStart = (e) => { if(e.touches.length === 2) { distStart = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); scaleStart = zoomScale; } };
+        const onPinchMove = (e) => { if(e.touches.length === 2) { e.preventDefault(); const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); zoomScale = Math.max(0.2, Math.min(2.5, scaleStart * (d / distStart))); updateGridPattern(); refreshEditorContainer(); } };
+        [timelineArea, editorScroll].forEach(el => { el.addEventListener('touchstart', onPinchStart); el.addEventListener('touchmove', onPinchMove, {passive:false}); });
 
-        function getMidiNoteNumber(part, yValue) {
-            if (part === 'drum') {
-                const idx = Math.floor(yValue / 40);
-                // GM標準ドラムマッピング配列 (36: Kick, 38: Snare, 42: CloseHat, 46: OpenHat)
-                const mapping = [46, 42, 38, 36]; 
-                return mapping[idx] || 36;
-            } else {
-                const idx = Math.floor(yValue / 20);
-                // freqMap基準 (C4=60, B4=71...)。1つ下がるごとにMIDIノート番号が1下がる
-                return 71 - idx;
-            }
-        }
+        timelineArea.addEventListener('scroll', () => { document.getElementById('ruler').style.transform = `translateX(-${timelineArea.scrollLeft}px)`; });
+        editorScroll.addEventListener('scroll', () => { document.getElementById('editor-ruler').style.transform = `translateX(-${editorScroll.scrollLeft}px)`; });
 
-        function exportToMidiFile() {
-            const ticksPerBeat = 480; 
+        const rszH = document.getElementById('editor-resizer');
+        const rszSt = (e) => { e.preventDefault(); const t = e.touches ? e.touches[0] : e; const onMv = (me) => { const mt = me.touches ? me.touches[0] : me; const h = window.innerHeight - mt.clientY; if(h > 100 && h < window.innerHeight*0.8) document.getElementById('editor-container').style.setProperty('--editor-height', `${h}px`); }; const onUp = () => { window.removeEventListener('mousemove', onMv); window.removeEventListener('touchmove', onMv); window.removeEventListener('mouseup', onUp); window.removeEventListener('touchend', onUp); }; window.addEventListener('mousemove', onMv); window.addEventListener('touchmove', onMv, {passive:false}); window.addEventListener('mouseup', onUp); window.addEventListener('touchend', onUp); };
+        rszH.addEventListener('mousedown', rszSt); rszH.addEventListener('touchstart', rszSt, {passive:false});
+
+        document.getElementById('btn-export-midi').addEventListener('click', () => {
             const bpm = parseFloat(document.getElementById('tempo').value) || 120;
-            
-            const parts = ['drum', 'melody', 'chord', 'bass'];
-            let tracksData = [];
+            const encodeNum = (num, len) => { let res = []; for (let i = len - 1; i >= 0; i--) res.push((num >> (i * 8)) & 0xff); return res; };
+            const encodeVLQ = (num) => { let buffer = [num & 0x7f]; while ((num >>= 7) > 0) { buffer.push((num & 0x7f) | 0x80); } return buffer.reverse(); };
+            const strToBytes = (str) => Array.from(str).map(c => c.charCodeAt(0));
 
-            // 各トラックのイベント収集
-            parts.forEach((part, trackIdx) => {
-                let midiEvents = [];
-                const ch = (part === 'drum') ? 9 : trackIdx; // ドラムはCh 10 (インデックス9)
+            let headerChunk = [].concat(strToBytes('MThd'), encodeNum(6, 4), encodeNum(1, 2), encodeNum(4, 2), encodeNum(192, 2));
+            let tracksBinary = []; const partChannels = { 'melody': 0, 'chord': 1, 'bass': 2, 'drum': 9 };
 
+            ['melody', 'chord', 'bass', 'drum'].forEach((partName) => {
+                let trackEvents = []; let currentBpm = bpm;
+                if (partName === 'melody') {
+                    let tempoMicro = Math.round(60000000 / currentBpm);
+                    trackEvents.push({ time: 0, bytes: [0xff, 0x51, 0x03, (tempoMicro >> 16) & 0xff, (tempoMicro >> 8) & 0xff, tempoMicro & 0xff] });
+                }
+                let rawNotes = [];
                 Object.values(boxRegistry).forEach(box => {
-                    if (box.part !== part) return;
+                    if (box.part !== partName) return;
                     box.notes.forEach(note => {
-                        const absXStart = box.x + note.x;
-                        const absXEnd = absXStart + note.w;
-
-                        // 80ピクセル = 1拍 (四分音符) = 480 ticks
-                        const startTick = Math.round((absXStart / 80) * ticksPerBeat);
-                        const endTick = Math.round((absXEnd / 80) * ticksPerBeat);
-                        const pitch = getMidiNoteNumber(part, note.y);
-
-                        midiEvents.push({ tick: startTick, type: 0x90, note: pitch, vel: 100 }); // Note On
-                        midiEvents.push({ tick: endTick, type: 0x80, note: pitch, vel: 0 });   // Note Off
-                    });
-                });
-
-                if (midiEvents.length === 0 && trackIdx > 0) return; // 空トラックはスキップ
-
-                // 時間軸でソート
-                midiEvents.sort((a, b) => a.tick - b.tick);
-
-                let trackBytes = [];
-                let lastTick = 0;
-
-                // テンポ設定・トラック名メタデータを最初のみ挿入
-                if (trackIdx === 0) {
-                    // テンポトラック名
-                    trackBytes.push(0x00, 0xFF, 0x03, 0x04, 0x4d, 0x41, 0x49, 0x4e); 
-                    // テンポ設定 (メタイベント)
-                    const microsecondsPerBeat = Math.round(60000000 / bpm);
-                    trackBytes.push(0x00, 0xFF, 0x51, 0x03);
-                    trackBytes.push((microsecondsPerBeat >> 16) & 0xFF);
-                    trackBytes.push((microsecondsPerBeat >> 8) & 0xFF);
-                    trackBytes.push(microsecondsPerBeat & 0xFF);
-                }
-
-                // トラック名付与
-                const tName = part.toUpperCase();
-                writeVarInt(trackBytes, 0);
-                trackBytes.push(0xFF, 0x03, tName.length);
-                for(let i=0; i<tName.length; i++) trackBytes.push(tName.charCodeAt(i));
-
-                // デルタタイムを計算しながらバイナリ配列化
-                midiEvents.forEach(ev => {
-                    let delta = ev.tick - lastTick;
-                    if (delta < 0) delta = 0;
-                    writeVarInt(trackBytes, delta);
-                    trackBytes.push(ev.type | ch);
-                    trackBytes.push(ev.note);
-                    trackBytes.push(ev.vel);
-                    lastTick = ev.tick;
-                });
-
-                // トラック終端メタ
-                writeVarInt(trackBytes, 0);
-                trackBytes.push(0xFF, 0x2F, 0x00);
-
-                tracksData.push(trackBytes);
-            });
-
-            // MIDIヘッダーとトラックを合算してArrayBufferを作成
-            const numTracks = tracksData.length;
-            let totalSize = 14 + (numTracks * 8);
-            tracksData.forEach(t => totalSize += t.length);
-
-            const buffer = new ArrayBuffer(totalSize);
-            const dv = new DataView(buffer);
-            let offset = 0;
-
-            // MThd
-            offset = dvWriteStr(dv, offset, "MThd");
-            dv.setUint32(offset, 6); offset += 4;
-            dv.setUint16(offset, 1); offset += 2; // Format 1 (複数トラック)
-            dv.setUint16(offset, numTracks); offset += 2;
-            dv.setUint16(offset, ticksPerBeat); offset += 2;
-
-            // MT rk
-            tracksData.forEach(tBytes => {
-                offset = dvWriteStr(dv, offset, "MTrk");
-                dv.setUint32(offset, tBytes.length); offset += 4;
-                tBytes.forEach(b => {
-                    dv.setUint8(offset, b);
-                    offset++;
-                });
-            });
-
-            // ファイルダウンロードトリガー
-            const blob = new Blob([buffer], { type: "audio/midi" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `Ray_Project_${bpm}BPM.mid`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        window.addEventListener('keydown', (e) => {
-            if(e.code === 'Space') { e.preventDefault(); togglePlay(); return; }
-
-            const parentBox = boxRegistry[currentSelectedBoxId];
-
-            if ((e.key === 'Backspace' || e.key === 'Delete') && parentBox) {
-                const selectedNotes = parentBox.notes.filter(n => n.selected);
-                if (selectedNotes.length > 0) {
-                    e.preventDefault(); saveHistory(); 
-                    parentBox.notes = parentBox.notes.filter(n => !n.selected);
-                    refreshEditorContainer();
-                }
-                return;
-            }
-
-            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
-                e.preventDefault(); triggerUndo(); return;
-            }
-
-            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'c' && parentBox) {
-                const targets = parentBox.notes.filter(n => n.selected);
-                if (targets.length > 0) {
-                    e.preventDefault();
-                    const minX = Math.min(...targets.map(n => n.x));
-                    noteClipboard = targets.map(n => ({ y: n.y, xOffset: n.x - minX, w: n.w }));
-                }
-                return;
-            }
-
-            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'v' && parentBox) {
-                if (noteClipboard.length > 0) {
-                    e.preventDefault(); saveHistory(); 
-                    let pasteBaseXInside = playX - parentBox.x;
-                    const step = 320 / (parseInt(document.getElementById('quantize').value) || 16);
-                    pasteBaseXInside = Math.floor(pasteBaseXInside / step) * step;
-
-                    parentBox.notes.forEach(n => n.selected = false);
-
-                    noteClipboard.forEach(clip => {
-                        const targetX = pasteBaseXInside + clip.xOffset;
-                        if (targetX >= 0 && targetX < parentBox.w) {
-                            const newNoteId = `note-${Date.now()}-${Math.random()}`;
-                            parentBox.notes.push({ id: newNoteId, x: targetX, y: clip.y, w: clip.w, selected: true });
+                        let absoluteStepX = box.x + note.x; let absoluteStepEnd = absoluteStepX + note.w;
+                        let midiPitch = 60; 
+                        if (partName === 'drum') {
+                            const dIdx = Math.floor(note.y / 40); const drumMap = [38, 42, 40, 36]; midiPitch = drumMap[dIdx] || 36;
+                        } else {
+                            let kIdx = Math.floor(note.y / 20); midiPitch = 83 - kIdx; 
                         }
+                        let startTick = Math.round((absoluteStepX / 80) * 192); let endTick = Math.round((absoluteStepEnd / 80) * 192);
+                        rawNotes.push({ tick: startTick, type: 'on', pitch: midiPitch }); rawNotes.push({ tick: endTick, type: 'off', pitch: midiPitch });
                     });
-                    refreshEditorContainer();
-                    updateBoxUI(parentBox);
-                }
-                return;
-            }
+                });
+                rawNotes.sort((a, b) => a.tick - b.tick); let lastTick = 0; const chan = partChannels[partName];
+                rawNotes.forEach(evt => {
+                    let delta = evt.tick - lastTick; lastTick = evt.tick;
+                    let status = (evt.type === 'on' ? 0x90 : 0x80) | chan;
+                    let bytes = [status, evt.pitch, evt.type === 'on' ? 96 : 0]; trackEvents.push({ time: delta, bytes: bytes });
+                });
+                trackEvents.push({ time: 0, bytes: [0xff, 0x2f, 0x00] }); let trackBody = [];
+                trackEvents.forEach(e => { trackBody = trackBody.concat(encodeVLQ(e.time), e.bytes); });
+                let trackChunk = [].concat(strToBytes('MTrk'), encodeNum(trackBody.length, 4), trackBody); tracksBinary = tracksBinary.concat(trackChunk);
+            });
+
+            const blob = new Blob([new Uint8Array(headerChunk.concat(tracksBinary))], { type: 'audio/midi' });
+            const url = URL.createObjectURL(blob); const a = document.createElement('a');
+            a.href = url; a.download = 'project.mid'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
         });
 
-        document.getElementById('tool-pencil').addEventListener('click', () => {
-            currentTool = 'pencil';
-            document.getElementById('tool-pencil').classList.add('active');
-            document.getElementById('tool-select').classList.remove('active');
-            gridEl.style.cursor = "crosshair";
-        });
-        document.getElementById('tool-select').addEventListener('click', () => {
-            currentTool = 'select';
-            document.getElementById('tool-select').classList.add('active');
-            document.getElementById('tool-pencil').classList.remove('active');
-            gridEl.style.cursor = "default";
-        });
-
-        document.getElementById('btn-play').addEventListener('click', togglePlay);
-        document.getElementById('btn-stop').addEventListener('click', () => { 
-            isPlaying = false; 
-            playX = 0; 
-            playheadTime = 0; 
-            updatePlayheadUI(); 
-            document.getElementById('btn-play').innerText = "▶ Play [Space]"; 
-        });
-
-        // MIDIエクスポートボタン紐付け
-        document.getElementById('btn-export').addEventListener('click', exportToMidiFile);
-
-        function handleShiftScroll(e, element) {
-            if (e.shiftKey || e.deltaX !== 0) {
-                e.preventDefault();
-                element.scrollLeft += e.deltaX !== 0 ? e.deltaX : e.deltaY;
-                
-                if (element.scrollLeft + element.clientWidth > element.scrollWidth - 400) {
-                    currentMaxBars += 10;
-                    updateGridPattern();
-                }
-            }
-        }
-        timelineArea.addEventListener('wheel', (e) => handleShiftScroll(e, timelineArea), { passive: false });
-        editorScroll.addEventListener('wheel', (e) => handleShiftScroll(e, editorScroll), { passive: false });
-
-        timelineArea.addEventListener('scroll', () => {
-            document.getElementById('ruler').style.transform = `translateX(-${timelineArea.scrollLeft}px)`;
-        });
-        editorScroll.addEventListener('scroll', () => {
-            document.getElementById('editor-ruler').style.transform = `translateX(-${editorScroll.scrollLeft}px)`;
-        });
-
-        let startDist = 0, startScale = 1.0, isPinching = false;
-        function getDistance(t1, t2) { return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY); }
-        function handleTouchStart(e) { if (e.touches.length === 2) { isPinching = true; startDist = getDistance(e.touches[0], e.touches[1]); startScale = zoomScale; } }
-        function handleTouchMove(e) {
-            if (isPinching && e.touches.length === 2) {
-                e.preventDefault();
-                zoomScale = Math.max(0.5, Math.min(3.0, startScale * (getDistance(e.touches[0], e.touches[1]) / startDist)));
-                updateGridPattern(); refreshEditorContainer();
-            }
-        }
-        function handleTouchEnd(e) { if (e.touches.length < 2) isPinching = false; }
-
-        [timelineArea, editorScroll].forEach(el => {
-            el.addEventListener('touchstart', handleTouchStart, {passive: false});
-            el.addEventListener('touchmove', handleTouchMove, {passive: false});
-            el.addEventListener('touchend', handleTouchEnd);
-        });
-
-        const resizerHandle = document.getElementById('editor-resizer');
-        const editorContainer = document.getElementById('editor-container');
-        resizerHandle.addEventListener('mousedown', startHandler);
-        resizerHandle.addEventListener('touchstart', startHandler, {passive: false});
-
-        function startHandler(e) {
-            e.preventDefault();
-            const isTouch = e.type.startsWith('touch');
-            const moveEvent = isTouch ? 'touchmove' : 'mousemove';
-            const endEvent = isTouch ? 'touchend' : 'mouseup';
-            const onMove = (me) => {
-                const clientY = isTouch ? me.touches[0].clientY : me.clientY;
-                const newHeight = window.innerHeight - clientY;
-                if(newHeight > 120 && newHeight < window.innerHeight * 0.7) editorContainer.style.setProperty('--editor-height', `${newHeight}px`);
-            };
-            const onUp = () => { window.removeEventListener(moveEvent, onMove); window.removeEventListener(endEvent, onUp); };
-            window.addEventListener(moveEvent, onMove, {passive: false}); window.addEventListener(endEvent, onUp);
-        }
-
-        selectBox(null);
+        updateGridPattern();
+        selectBox(null); 
+        updatePlayheadUI();
     </script>
 </body>
 </html>
