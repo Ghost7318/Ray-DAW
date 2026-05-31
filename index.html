@@ -67,7 +67,7 @@
 
         input, select { 
             border: 1px solid var(--accent-pink); border-radius: 4px; padding: 2px; color: var(--text-dark); font-size: 11px; background: white; 
-            user-select: auto; -webkit-user-select: auto; /* 入力欄の選択・編集を許可 */
+            user-select: auto; -webkit-user-select: auto;
         }
         select optgroup { font-weight: bold; color: var(--accent-pink); background: #fff; }
         select option { color: var(--text-dark); font-weight: normal; }
@@ -129,8 +129,9 @@
         
         .box-preview-canvas { position: absolute; bottom: 1px; left: 2px; right: 2px; height: 16px; pointer-events: none; opacity: 0.6; }
 
+        /* 🔍 範囲選択用点線枠 */
         .selection-marquee {
-            position: absolute; border: 1px dashed var(--accent-dark); background: rgba(255, 20, 147, 0.15); z-index: 40; pointer-events: none;
+            position: absolute; border: 2px dashed var(--accent-dark); background: rgba(255, 20, 147, 0.18); z-index: 40; pointer-events: none;
         }
 
         .editor-resize-handle {
@@ -548,7 +549,6 @@
         document.getElementById('btn-delete').addEventListener('click', doDeleteSelected);
 
         window.addEventListener('keydown', (e) => {
-            // 【修正】入力欄（BPMなど）にフォーカスがある時はアプリのショートカットをパスする
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
                 return;
             }
@@ -820,20 +820,57 @@
             window.addEventListener('touchmove', onMove, {passive:false}); window.addEventListener('touchend', onEnd);
         }
 
+        function startNoteResize(e, noteElement, noteData, parentBox) {
+            e.stopPropagation(); e.preventDefault();
+            const startX = e.clientX || (e.touches && e.touches[0].clientX);
+            const startW = noteData.w; 
+            const step = getStepWidth() / zoomScale;
+            isResizingActive = true;
+
+            const onMove = (evt) => {
+                const curX = evt.clientX || (evt.touches && evt.touches[0].clientX);
+                let delta = (curX - startX) / zoomScale;
+                let nw = Math.round((startW + delta) / step) * step;
+                if(nw < step) nw = step;
+                
+                if (noteData.x + nw > parentBox.w) {
+                    nw = parentBox.w - noteData.x;
+                }
+
+                noteData.w = nw; 
+                noteElement.style.width = `${nw * zoomScale}px`;
+            };
+
+            const onEnd = () => {
+                isResizingActive = false;
+                if (isNoteOverlapping(parentBox, noteData.id, noteData.x, noteData.y, noteData.w)) {
+                    noteData.w = startW; 
+                    noteElement.style.width = `${startW * zoomScale}px`;
+                } else {
+                    saveHistory();
+                }
+                updateBoxUI(parentBox);
+                window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onEnd);
+                window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onEnd);
+            };
+
+            window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onEnd);
+            window.addEventListener('touchmove', onMove, {passive:false}); window.addEventListener('touchend', onEnd);
+        }
+
         function setupUnifiedDrag(element, dataObj, isTimelineBox=false) {
             element.style.left = `${dataObj.x * zoomScale}px`;
             if(isTimelineBox) element.style.width = `${dataObj.w * zoomScale}px`;
 
-            let startX, startY, origX, origY;
+            let startX, origX;
             const stepW = getStepWidth() / zoomScale;
 
             const onStart = (e) => {
                 if(e.button === 2 || isResizingActive || currentTool === 'eraser' || currentTool === 'cut') return;
-                if(!isTimelineBox && currentTool !== 'select') return;
+                if (e.target.classList.contains('resizer-right')) return;
                 e.stopPropagation();
                 startX = e.clientX || (e.touches && e.touches[0].clientX);
-                startY = e.clientY || (e.touches && e.touches[0].clientY);
-                origX = dataObj.x; origY = dataObj.y || 0;
+                origX = dataObj.x;
 
                 window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onEnd);
                 window.addEventListener('touchmove', onMove, {passive:false}); window.addEventListener('touchend', onEnd);
@@ -842,51 +879,139 @@
             const onMove = (evt) => {
                 evt.preventDefault();
                 const curX = evt.clientX || (evt.touches && evt.touches[0].clientX);
-                const curY = evt.clientY || (evt.touches && evt.touches[0].clientY);
+                if (curX === undefined) return;
                 let dx = (curX - startX) / zoomScale;
                 let nx = Math.round((origX + dx) / stepW) * stepW;
                 if(nx < 0) nx = 0; dataObj.x = nx; element.style.left = `${nx * zoomScale}px`;
-
-                if(!isTimelineBox) {
-                    let dy = curY - startY;
-                    let rowH = currentPart === 'drum' ? 40 : 20;
-                    let ny = origY + Math.round(dy / rowH);
-                    let maxRow = currentPart === 'drum' ? drumNotes.length - 1 : totalKeys - 1;
-                    if(ny < 0) ny = 0; if(ny > maxRow) ny = maxRow;
-                    dataObj.y = ny; element.style.top = `${ny * rowH + 2}px`;
-                } else {
-                    updateEditorMasks();
-                }
+                updateEditorMasks();
             };
 
             const onEnd = () => {
-                if (isTimelineBox) {
-                    if (isBoxOverlapping(dataObj.id, dataObj.part, dataObj.x, dataObj.w)) {
-                        dataObj.x = origX; element.style.left = `${origX * zoomScale}px`;
-                    } else {
-                        saveHistory();
-                    }
-                    updateBoxUI(dataObj); updateEditorMasks();
+                if (isBoxOverlapping(dataObj.id, dataObj.part, dataObj.x, dataObj.w)) {
+                    dataObj.x = origX; element.style.left = `${origX * zoomScale}px`;
                 } else {
-                    const box = boxRegistry[currentSelectedBoxId];
-                    if (box) {
-                        if (isNoteOverlapping(box, dataObj.id, dataObj.x, dataObj.y, dataObj.w)) {
-                            dataObj.x = origX; dataObj.y = origY;
-                            element.style.left = `${(box.x + origX) * zoomScale}px`;
-                            let rowH = currentPart === 'drum' ? 40 : 20;
-                            element.style.top = `${origY * rowH + 2}px`;
-                        } else {
-                            saveHistory();
-                        }
-                        updateBoxUI(box);
-                    }
+                    saveHistory();
                 }
+                updateBoxUI(dataObj); updateEditorMasks();
                 window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onEnd);
                 window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onEnd);
             };
 
             element.addEventListener('mousedown', onStart);
             element.addEventListener('touchstart', onStart, {passive:true});
+        }
+
+        function setupNoteDrag(element, noteData, parentBox) {
+            let startX, startY;
+            let selectedNotesRefs = [];
+            const stepW = getStepWidth() / zoomScale;
+            let rowH = currentPart === 'drum' ? 40 : 20;
+            let isMoved = false;
+
+            const onStart = (e) => {
+                if (e.button === 2 || isResizingActive || currentTool !== 'select') return;
+                if (e.target.classList.contains('note-resizer-right')) return;
+                e.stopPropagation();
+
+                startX = e.clientX || (e.touches && e.touches[0].clientX);
+                startY = e.clientY || (e.touches && e.touches[0].clientY);
+                isMoved = false;
+
+                window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onEnd);
+                window.addEventListener('touchmove', onMove, { passive: false }); window.addEventListener('touchend', onEnd);
+            };
+
+            const onMove = (evt) => {
+                evt.preventDefault();
+                const curX = evt.clientX || (evt.touches && evt.touches[0].clientX);
+                const curY = evt.clientY || (evt.touches && evt.touches[0].clientY);
+                if (curX === undefined || curY === undefined) return;
+
+                let dx = (curX - startX) / zoomScale;
+                let dy = curY - startY;
+
+                let deltaGridX = Math.round(dx / stepW) * stepW;
+                let deltaGridY = Math.round(dy / rowH);
+
+                if (!isMoved && (deltaGridX !== 0 || deltaGridY !== 0)) {
+                    isMoved = true;
+                    if (!noteData.selected) {
+                        parentBox.notes.forEach(n => n.selected = false);
+                        document.querySelectorAll('.piano-note').forEach(el => el.classList.remove('selected'));
+                        noteData.selected = true;
+                        element.classList.add('selected');
+                    }
+
+                    selectedNotesRefs = parentBox.notes.filter(n => n.selected).map(n => {
+                        return { note: n, origX: n.x, origY: n.y, el: document.getElementById(n.id) };
+                    });
+                }
+
+                if (isMoved) {
+                    selectedNotesRefs.forEach(ref => {
+                        let nx = ref.origX + deltaGridX;
+                        if (nx < 0) nx = 0;
+                        if (nx + ref.note.w > parentBox.w) nx = parentBox.w - ref.note.w;
+                        
+                        let ny = ref.origY + deltaGridY;
+                        let maxRow = currentPart === 'drum' ? drumNotes.length - 1 : totalKeys - 1;
+                        if (ny < 0) ny = 0; if (ny > maxRow) ny = maxRow;
+
+                        ref.note.x = nx;
+                        ref.note.y = ny;
+
+                        if (ref.el) {
+                            ref.el.style.left = `${(parentBox.x + nx) * zoomScale}px`;
+                            ref.el.style.top = `${ny * rowH + 2}px`;
+                        }
+                    });
+                }
+            };
+
+            const onEnd = () => {
+                window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onEnd);
+                window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onEnd);
+
+                if (!isMoved) {
+                    noteData.selected = !noteData.selected;
+                    element.classList.toggle('selected', noteData.selected);
+                    return;
+                }
+
+                let hasOverlap = false;
+                const nonSelectedNotes = parentBox.notes.filter(n => !n.selected);
+                
+                for (let ref of selectedNotesRefs) {
+                    let overlapWithStatic = nonSelectedNotes.some(n => {
+                        return (ref.note.y === n.y && !(ref.note.x + ref.note.w <= n.x || n.x + n.w <= ref.note.x));
+                    });
+                    let overlapWithSelected = selectedNotesRefs.some(other => {
+                        if (other.note.id === ref.note.id) return false;
+                        return (ref.note.y === other.note.y && !(ref.note.x + ref.note.w <= other.note.x || other.note.x + other.note.w <= ref.note.x));
+                    });
+
+                    if (overlapWithStatic || overlapWithSelected) {
+                        hasOverlap = true; break;
+                    }
+                }
+
+                if (hasOverlap) {
+                    selectedNotesRefs.forEach(ref => {
+                        ref.note.x = ref.origX; ref.note.y = ref.origY;
+                        if (ref.el) {
+                            ref.el.style.left = `${(parentBox.x + ref.origX) * zoomScale}px`;
+                            ref.el.style.top = `${ref.origY * rowH + 2}px`;
+                        }
+                    });
+                } else {
+                    saveHistory();
+                }
+
+                updateBoxUI(parentBox);
+            };
+
+            element.addEventListener('mousedown', onStart);
+            element.addEventListener('touchstart', onStart, { passive: true });
         }
 
         function updateBoxUI(boxData) {
@@ -915,7 +1040,14 @@
                 nEl.style.top = `${note.y * rowH + 2}px`; nEl.style.height = `${rowH - 4}px`;
                 nEl.style.left = `${(box.x + note.x) * zoomScale}px`; nEl.style.width = `${note.w * zoomScale}px`;
 
-                setupUnifiedDrag(nEl, note, false); setupNoteInteraction(nEl, note, box);
+                nEl.innerHTML = `<div class="note-resizer-right" style="position: absolute; right: 0; top: 0; bottom: 0; width: 8px; cursor: ew-resize; z-index: 11;"></div>`;
+
+                setupNoteDrag(nEl, note, box); setupNoteInteraction(nEl, note, box);
+                
+                const resizerRight = nEl.querySelector('.note-resizer-right');
+                resizerRight.addEventListener('mousedown', (e) => startNoteResize(e, nEl, note, box));
+                resizerRight.addEventListener('touchstart', (e) => startNoteResize(e, nEl, note, box), {passive: false});
+
                 gridEl.appendChild(nEl);
             });
         }
@@ -926,9 +1058,12 @@
             };
 
             noteEl.addEventListener('click', (e) => {
-                if (e.button === 2) return; e.stopPropagation();
+                if (e.button === 2) return; 
+                if (e.target.classList.contains('note-resizer-right')) return;
+                e.stopPropagation();
                 if(currentTool === 'eraser') { deleteNote(); } 
-                else if(currentTool === 'select') { noteData.selected = !noteData.selected; noteEl.classList.toggle('selected', noteData.selected); } 
+                else if(currentTool === 'select') { 
+                } 
                 else {
                     if(currentPart === 'drum') { playTone(0, 0.1, 'drum', drumNotes[noteData.y]); } 
                     else { if(freqMap[noteData.y]) playTone(freqMap[noteData.y].freq, 0.2, currentPart); }
@@ -946,9 +1081,140 @@
         function setPlayXFromClientX(clientX, scrollAreaElement) {
             const rect = scrollAreaElement.getBoundingClientRect();
             const clickX = clientX - rect.left + scrollAreaElement.scrollLeft;
-            let targetX = clickX / zoomScale; if (targetX < 0) targetX = 0;
-            const maxW = currentMaxBars * 320; if (targetX > maxW) targetX = maxW;
-            playX = targetX; updatePlayheadUI();
+            let targetX = clickX / zoomScale; 
+            if (targetX < 0) targetX = 0;
+            const maxW = currentMaxBars * 320; 
+            if (targetX > maxW) targetX = maxW;
+            
+            // 【修正】クオンタイズ値にスナップさせる
+            const step = getStepWidth() / zoomScale;
+            targetX = Math.round(targetX / step) * step;
+
+            playX = targetX; 
+            updatePlayheadUI();
+        }
+
+        function handleGridNewNoteStart(clientX, clientY) {
+            if(currentTool !== 'pencil') return;
+            if(!currentSelectedBoxId || !boxRegistry[currentSelectedBoxId]) return;
+            const box = boxRegistry[currentSelectedBoxId]; if(box.part !== currentPart) return;
+
+            const rect = gridEl.getBoundingClientRect();
+            const clickX = (clientX - rect.left) / zoomScale; 
+            const clickY = clientY - rect.top;
+
+            let rowH = currentPart === 'drum' ? 40 : 20;
+            let targetY = Math.floor(clickY / rowH);
+            let stepW = getStepWidth() / zoomScale;
+            let targetXInside = Math.floor((clickX - box.x) / stepW) * stepW;
+
+            if(targetXInside >= 0 && targetXInside < box.w) {
+                if (isNoteOverlapping(box, null, targetXInside, targetY, stepW)) return;
+
+                saveHistory(); 
+                const nid = `note-${Date.now()}-${Math.random()}`;
+                const newNote = { id: nid, x: targetXInside, y: targetY, w: stepW, selected: false };
+                box.notes.push(newNote);
+                
+                if(currentPart === 'drum') { playTone(0, 0.1, 'drum', drumNotes[targetY]); } 
+                else { if(freqMap[targetY]) playTone(freqMap[targetY].freq, 0.2, currentPart); }
+                
+                refreshEditorContainer(); 
+                updateBoxUI(box);
+
+                isResizingActive = true;
+
+                const onMove = (evt) => {
+                    const curX = evt.clientX || (evt.touches && evt.touches[0].clientX);
+                    if (curX === undefined) return;
+                    
+                    const currentClickX = (curX - rect.left) / zoomScale;
+                    let targetRightXInside = Math.round((currentClickX - box.x) / stepW) * stepW;
+                    
+                    let nw = targetRightXInside - targetXInside;
+                    if (nw < stepW) nw = stepW;
+                    if (targetXInside + nw > box.w) nw = box.w - targetXInside;
+
+                    let validW = stepW;
+                    for (let w = stepW; w <= nw; w += stepW) {
+                        if (isNoteOverlapping(box, nid, targetXInside, targetY, w)) break;
+                        validW = w;
+                    }
+                    nw = validW;
+
+                    newNote.w = nw;
+                    const noteEl = document.getElementById(nid);
+                    if (noteEl) noteEl.style.width = `${nw * zoomScale}px`;
+                };
+
+                const onEnd = () => {
+                    isResizingActive = false; updateBoxUI(box); refreshEditorContainer();
+                    window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onEnd);
+                    window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onEnd);
+                };
+
+                window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onEnd);
+                window.addEventListener('touchmove', onMove, { passive: false }); window.addEventListener('touchend', onEnd);
+            }
+        }
+
+        function handleGridMarqueeSelect(startX, startY) {
+            if(currentTool !== 'select') return;
+            if(!currentSelectedBoxId || !boxRegistry[currentSelectedBoxId]) return;
+            const box = boxRegistry[currentSelectedBoxId]; if(box.part !== currentPart) return;
+
+            const rect = gridEl.getBoundingClientRect();
+            const startXInside = startX - rect.left;
+            const startYInside = startY - rect.top;
+
+            box.notes.forEach(n => n.selected = false);
+            document.querySelectorAll('.piano-note').forEach(el => el.classList.remove('selected'));
+
+            const marquee = document.createElement('div');
+            marquee.classList.add('selection-marquee');
+            gridEl.appendChild(marquee);
+
+            const onMove = (evt) => {
+                const curX = evt.clientX || (evt.touches && evt.touches[0].clientX);
+                const curY = evt.clientY || (evt.touches && evt.touches[0].clientY);
+                if (curX === undefined || curY === undefined) return;
+
+                const curXInside = curX - rect.left;
+                const curYInside = curY - rect.top;
+
+                const left = Math.min(startXInside, curXInside);
+                const top = Math.min(startYInside, curYInside);
+                const width = Math.abs(startXInside - curXInside);
+                const height = Math.abs(startYInside - curYInside);
+
+                marquee.style.left = `${left}px`;
+                marquee.style.top = `${top}px`;
+                marquee.style.width = `${width}px`;
+                marquee.style.height = `${height}px`;
+
+                let rowH = currentPart === 'drum' ? 40 : 20;
+                box.notes.forEach(n => {
+                    const nLeft = (box.x + n.x) * zoomScale;
+                    const nTop = n.y * rowH + 2;
+                    const nRight = nLeft + n.w * zoomScale;
+                    const nBottom = nTop + rowH - 4;
+
+                    const isIntersect = !(nLeft > left + width || nRight < left || nTop > top + height || nBottom < top);
+                    n.selected = isIntersect;
+                    
+                    const nEl = document.getElementById(n.id);
+                    if (nEl) nEl.classList.toggle('selected', isIntersect);
+                });
+            };
+
+            const onEnd = () => {
+                marquee.remove();
+                window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onEnd);
+                window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onEnd);
+            };
+
+            window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onEnd);
+            window.addEventListener('touchmove', onMove, { passive: false }); window.addEventListener('touchend', onEnd);
         }
 
         function setupScrollSyncAndScrubbing() {
@@ -985,29 +1251,23 @@
         window.addEventListener('contextmenu', e => e.preventDefault());
 
         gridEl.addEventListener('mousedown', (e) => {
-            if(e.button !== 0 || currentTool !== 'pencil') return;
-            if(!currentSelectedBoxId || !boxRegistry[currentSelectedBoxId]) return;
-            const box = boxRegistry[currentSelectedBoxId]; if(box.part !== currentPart) return;
-
-            const rect = gridEl.getBoundingClientRect();
-            const clickX = (e.clientX - rect.left) / zoomScale; const clickY = e.clientY - rect.top;
-
-            let rowH = currentPart === 'drum' ? 40 : 20;
-            let targetY = Math.floor(clickY / rowH);
-            let stepW = getStepWidth() / zoomScale;
-            let targetXInside = Math.floor((clickX - box.x) / stepW) * stepW;
-
-            if(targetXInside >= 0 && targetXInside < box.w) {
-                if (isNoteOverlapping(box, null, targetXInside, targetY, stepW)) return;
-
-                saveHistory(); const nid = `note-${Date.now()}-${Math.random()}`;
-                box.notes.push({ id: nid, x: targetXInside, y: targetY, w: stepW, selected: false });
-                
-                if(currentPart === 'drum') { playTone(0, 0.1, 'drum', drumNotes[targetY]); } 
-                else { if(freqMap[targetY]) playTone(freqMap[targetY].freq, 0.2, currentPart); }
-                refreshEditorContainer(); updateBoxUI(box);
+            if(e.button !== 0) return;
+            if (currentTool === 'pencil') {
+                handleGridNewNoteStart(e.clientX, e.clientY);
+            } else if (currentTool === 'select') {
+                handleGridMarqueeSelect(e.clientX, e.clientY);
             }
         });
+        gridEl.addEventListener('touchstart', (e) => {
+            if(e.touches.length === 0) return;
+            if (currentTool === 'pencil') {
+                e.preventDefault(); 
+                handleGridNewNoteStart(e.touches[0].clientX, e.touches[0].clientY);
+            } else if (currentTool === 'select') {
+                e.preventDefault();
+                handleGridMarqueeSelect(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
 
         document.querySelectorAll('.track-row').forEach(row => {
             const lane = row.querySelector('.track-lane');
@@ -1041,7 +1301,8 @@
             if(!isPlaying) return;
             let delta = timestamp - lastFrameTime; lastFrameTime = timestamp;
             let bpm = parseFloat(document.getElementById('tempo').value) || 120;
-            let pxPerMs = (320 * bpm) / (60 * 1000);
+            
+            let pxPerMs = (80 * bpm) / (60 * 1000);
             let prevX = playX; playX += delta * pxPerMs;
 
             const maxW = currentMaxBars * 320; if(playX >= maxW) { playX = 0; }
@@ -1051,7 +1312,7 @@
                 box.notes.forEach(n => {
                     let absoluteN = box.x + n.x;
                     if(prevX <= absoluteN && playX > absoluteN) {
-                        let duration = (n.w / 320) * (60 / bpm);
+                        let duration = (n.w / 80) * (60 / bpm);
                         if(box.part === 'drum') { playTone(0, duration, 'drum', drumNotes[n.y]); } 
                         else { if(freqMap[n.y]) playTone(freqMap[n.y].freq, duration, box.part); }
                     }
