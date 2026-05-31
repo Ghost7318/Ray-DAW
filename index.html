@@ -54,7 +54,7 @@
         button.active { background-color: #ff1493; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
         button.util-btn { background-color: #a04580; }
         button.undo-btn { background-color: #ff8c00; }
-        button.delete-btn { background-color: #d9534f; } /* 消去ボタン用赤色 */
+        button.delete-btn { background-color: #d9534f; }
         button.midi-btn { background-color: #4b0082; }
 
         input, select { border: 1px solid #ffb6c1; border-radius: 4px; padding: 2px; color: var(--text-dark); font-size: 11px; background: white; }
@@ -67,7 +67,8 @@
             border-bottom: 1px solid var(--accent-pink); position: relative;
             overflow: hidden;
         }
-        .ruler-offset { width: 120px; min-width: 120px; background: var(--white); border-right: 2px solid var(--accent-pink); z-index: 15; }
+        /* 楽器名ヘッダー幅に合わせる (140px) */
+        .ruler-offset { width: 140px; min-width: 140px; background: var(--white); border-right: 2px solid var(--accent-pink); z-index: 15; }
         .ruler-scroll-area { flex: 1; overflow: hidden; position: relative; }
         .ruler-wrapper { position: absolute; left: 0; top: 0; height: 100%; width: max-content; }
         .ruler-cell {
@@ -80,9 +81,10 @@
         .timeline { flex: 1; display: flex; flex-direction: column; overflow: auto; position: relative; -webkit-overflow-scrolling: touch; }
         .track-row { display: flex; height: 65px; border-bottom: 1px solid #ffdae0; position: relative; width: max-content; }
         
+        /* 楽器名ヘッダーの幅 (140px) */
         .track-header {
-            width: 120px; min-width: 120px; background: var(--white); position: sticky; left: 0;
-            display: flex; flex-direction: column; justify-content: center; padding: 0 6px;
+            width: 140px; min-width: 140px; background: var(--white); position: sticky; left: 0;
+            display: flex; flex-direction: column; justify-content: center; padding: 0 8px;
             border-right: 2px solid var(--accent-pink); font-weight: bold; font-size: 11px; z-index: 10;
             gap: 4px;
         }
@@ -97,10 +99,11 @@
             background-color: var(--playhead-color); z-index: 50; pointer-events: none;
             transition: none;
         }
+        /* トラック枠に合わせて左端から 140px オフセット */
         .timeline-playhead-container {
-            position: absolute; top: 0; bottom: 0; left: 120px; right: 0; pointer-events: none; z-index: 45;
+            position: absolute; top: 0; bottom: 0; left: 140px; right: 0; pointer-events: none; z-index: 45;
         }
-        #timeline-playhead { height: 100%; }
+        #timeline-playhead { height: 100%; left: 0; }
 
         .midi-box {
             position: absolute; height: 76%; top: 12%;
@@ -139,35 +142,48 @@
             display: flex; height: 22px; background: #fafafa; border-bottom: 1px solid #ddd; position: relative;
             overflow: hidden;
         }
-        .editor-ruler-offset { width: 60px; min-width: 60px; background: var(--white); border-right: 2px solid var(--accent-pink); z-index: 15; }
+        /* 音名鍵盤幅に合わせる (80px) */
+        .editor-ruler-offset { width: 80px; min-width: 80px; background: var(--white); border-right: 2px solid var(--accent-pink); z-index: 15; }
         .editor-ruler-scroll-area { flex: 1; overflow: hidden; position: relative; }
         .editor-ruler-wrapper { position: absolute; left: 0; top: 0; height: 100%; width: max-content; }
 
         .piano-roll { flex: 1; display: flex; overflow: auto; position: relative; -webkit-overflow-scrolling: touch; }
         
-        .keyboard { width: 60px; position: sticky; left: 0; z-index: 15; background: var(--white); border-right: 2px solid var(--accent-pink); cursor: move; }
+        /* 音名キーボードの幅 (80px) */
+        .keyboard { width: 80px; min-width: 80px; position: sticky; left: 0; z-index: 25; background: var(--white); border-right: 2px solid var(--accent-pink); cursor: move; }
         .key {
             height: 20px; border-bottom: 1px solid #ffdae0; font-size: 9px; font-weight: bold;
-            display: flex; align-items: center; justify-content: flex-end; padding-right: 4px; 
+            display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; 
             background: #fffaf0; color: #4a4a4a;
         }
         .key.black { background: #4a4a4a; color: var(--white); border-bottom: 1px solid #222; }
-        .key.drum-key { background: #fff0f5; border-bottom: 1px solid #ffb6c1; color: var(--accent-pink); }
+        .key.drum-key { background: #fff0f5; border-bottom: 1px solid #ffb6c1; color: var(--accent-pink); height: 40px; }
         
-        .note-grid { position: absolute; left: 60px; top: 0; background-color: #fff; background-repeat: repeat; }
+        .note-grid { position: relative; left: 0px; top: 0; background-color: #fff; width: max-content; height: max-content; }
         
-        /* ピアノロール内の縦長再生バーコンテナ */
+        /* 背景色レイヤー */
+        .grid-bg-layer { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index: 0; }
+        .grid-row-bg { position: absolute; left:0; width:100%; border-bottom: 1px solid #ffdae0; }
+        .grid-row-bg.white-row { background-color: #ffffff; }
+        .grid-row-bg.black-row { background-color: #f7ebf0; } 
+        
+        /* グリッド描画用レイヤー */
+        .grid-lines-layer { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index: 1; }
+
+        /* ピアノロール内の再生バーコンテナ (Grid自体にマッピングされるため、left: 0) */
         .editor-playhead-container {
-            position: absolute; top: 0; bottom: 0; left: 60px; right: 0; pointer-events: none; z-index: 45;
+            position: absolute; top: 0; bottom: 0; left: 0px; right: 0; pointer-events: none; z-index: 45;
         }
+        #editor-playhead { height: 100%; left: 0; }
 
         .grid-mask { position: absolute; top: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.06); pointer-events: none; z-index: 2; }
         .grid-mask.left { left: 0; }
         .grid-mask.right { right: 0; }
 
+        /* ノート表示 */
         .piano-note {
             position: absolute; height: 16px; background: var(--accent-pink);
-            border: 1px solid var(--white); border-radius: 3px; opacity: 0.9; z-index: 3; cursor: grab;
+            border: 1px solid var(--white); border-radius: 3px; opacity: 0.9; z-index: 10; cursor: grab;
         }
         .piano-note.selected {
             background: #ff1493; border-color: #fff; box-shadow: 0 0 6px #ff1493;
@@ -206,12 +222,14 @@
             <div class="control-group">
                 <button id="tool-pencil" class="active">✏️ペン</button>
                 <button id="tool-select">🔍選択</button>
+                <button id="tool-cut">✂️カット</button>
                 <button id="tool-eraser">🧹消しゴム</button>
             </div>
             <div class="control-group">
                 <button id="btn-copy" class="util-btn">📋コピー</button>
                 <button id="btn-paste" class="util-btn">📥貼り付け</button>
-                <button id="btn-delete" class="delete-btn">🗑️消去</button> </div>
+                <button id="btn-delete" class="delete-btn">🗑️消去</button>
+            </div>
             <div class="control-group">
                 <label>BPM:</label>
                 <input type="number" id="tempo" value="120" style="width: 42px;">
@@ -296,11 +314,13 @@
         </div>
 
         <div class="piano-roll" id="editor-scroll">
-            <div class="editor-playhead-container" id="editor-playhead-container">
-                <div class="playhead" id="editor-playhead"></div>
-            </div>
             <div class="keyboard" id="keyboard"></div>
             <div class="note-grid" id="note-grid">
+                <div class="grid-bg-layer" id="grid-bg-layer"></div>
+                <div class="grid-lines-layer" id="grid-lines-layer"></div>
+                <div class="editor-playhead-container" id="editor-playhead-container">
+                    <div class="playhead" id="editor-playhead"></div>
+                </div>
                 <div id="mask-left" class="grid-mask left"></div>
                 <div id="mask-right" class="grid-mask right"></div>
             </div>
@@ -308,7 +328,7 @@
     </div>
 
     <footer>
-        🔍選択ツールで範囲選択 / Ctrl+A: 全選択 / Backspace, Delete, 🗑️ボタン: 選択全消去 / コピペ対応
+        ✂️カットツールでボックス分割 / 再生位置への自動追従スクロール搭載 / 黒鍵ライン色分け対応
     </footer>
 
     <script>
@@ -406,10 +426,12 @@
 
         const keyboardEl = document.getElementById('keyboard');
         const gridEl = document.getElementById('note-grid');
+        const gridBgLayer = document.getElementById('grid-bg-layer');
+        const gridLinesLayer = document.getElementById('grid-lines-layer');
         const timelineArea = document.getElementById('timeline-area');
         const editorScroll = document.getElementById('editor-scroll');
 
-        octaves.forEach(oct => { noteNames.forEach(name => { freqMap.push({ name: name+oct, freq: 493.88 * Math.pow(2, -totalKeys/12) }); totalKeys++; }); });
+        octaves.forEach(oct => { noteNames.forEach(name => { freqMap.push({ name: name+oct, freq: 493.88 * Math.pow(2, -totalKeys/12), isBlack: name.includes('#') }); totalKeys++; }); });
 
         let boxRegistry = {}; let currentSelectedBoxId = null; let currentPart = 'drum'; let currentTool = 'pencil'; 
         let boxCounter = 0; let isPlaying = false; let playX = 0; let lastFrameTime = 0; let isResizingActive = false;
@@ -429,11 +451,7 @@
                 const box = document.createElement('div'); box.classList.add('midi-box'); box.id = boxData.id;
                 box.innerHTML = `<span class="box-title"></span><canvas class="box-preview-canvas"></canvas><div class="resizer-right"></div>`;
                 setupUnifiedDrag(box, boxData, true);
-                box.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if(currentTool === 'eraser') { saveHistory(); delete boxRegistry[boxData.id]; box.remove(); if(currentSelectedBoxId===boxData.id) selectBox(null); } else { selectBox(boxData.id); }
-                });
-                box.addEventListener('contextmenu', (e) => { e.preventDefault(); saveHistory(); delete boxRegistry[boxData.id]; box.remove(); if(currentSelectedBoxId===boxData.id) selectBox(null); });
+                setupBoxClickAndCut(box, boxData);
                 box.querySelector('.resizer-right').addEventListener('mousedown', (e) => startBoxResize(e, box, boxData));
                 box.querySelector('.resizer-right').addEventListener('touchstart', (e) => startBoxResize(e, box, boxData), {passive:false});
                 partLane.appendChild(box);
@@ -442,7 +460,6 @@
         }
         document.getElementById('btn-undo').addEventListener('click', triggerUndo);
 
-        // 複数対応コピー
         function doCopy() {
             if(!currentSelectedBoxId) return; 
             const parent = boxRegistry[currentSelectedBoxId]; 
@@ -454,7 +471,6 @@
         }
         document.getElementById('btn-copy').addEventListener('click', doCopy);
 
-        // 複数対応貼り付け
         function doPaste() {
             if(!currentSelectedBoxId || noteClipboard.length === 0) return; 
             const parent = boxRegistry[currentSelectedBoxId];
@@ -476,17 +492,14 @@
         }
         document.getElementById('btn-paste').addEventListener('click', doPaste);
 
-        // 消去処理の一元化（キーボード・ゴミ箱ボタン両方から呼び出し）
         function doDeleteSelected() {
             saveHistory();
             if (currentSelectedBoxId && boxRegistry[currentSelectedBoxId]) {
                 const parent = boxRegistry[currentSelectedBoxId];
-                // 選択されているノートをすべて削除
                 parent.notes = parent.notes.filter(n => !n.selected);
                 refreshEditorContainer();
                 updateBoxUI(parent);
             } else {
-                // ボックスが未選択（または選択外タイムライン側）で、selectedクラスがついている全ボックスを削除
                 Object.values(boxRegistry).forEach(box => {
                     const el = document.getElementById(box.id);
                     if (el && el.classList.contains('selected')) {
@@ -499,11 +512,9 @@
         }
         document.getElementById('btn-delete').addEventListener('click', doDeleteSelected);
 
-        // キーボードショートカット処理
         window.addEventListener('keydown', (e) => {
             const isCtrl = e.ctrlKey || e.metaKey;
             
-            // 全選択 (Ctrl + A)
             if (isCtrl && e.code === 'KeyA') {
                 e.preventDefault();
                 if (currentSelectedBoxId && boxRegistry[currentSelectedBoxId]) {
@@ -517,7 +528,6 @@
                     });
                 }
             }
-            // Backspace または Delete キーでの消去
             if (e.code === 'Backspace' || e.code === 'Delete') {
                 e.preventDefault();
                 doDeleteSelected();
@@ -537,15 +547,21 @@
             const canvas = document.createElement('canvas');
             canvas.width = barW; canvas.height = rowHeight;
             const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, barW, rowHeight);
-            ctx.strokeStyle = '#eee'; ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(0, rowHeight - 1); ctx.lineTo(barW, rowHeight - 1); ctx.stroke();
-            ctx.strokeStyle = 'rgba(255, 105, 180, 0.15)'; ctx.lineWidth = 1;
+            
+            ctx.clearRect(0, 0, barW, rowHeight);
+            
+            // 細線（クオンタイズ）
+            ctx.strokeStyle = 'rgba(255, 105, 180, 0.35)'; ctx.lineWidth = 1;
             ctx.beginPath(); for(let i = 0; i < barW; i += qW) { ctx.moveTo(i, 0); ctx.lineTo(i, rowHeight); } ctx.stroke();
-            ctx.strokeStyle = 'rgba(255, 105, 180, 0.6)'; ctx.lineWidth = 1.5;
+            
+            // 拍線（4分音符）
+            ctx.strokeStyle = 'rgba(255, 105, 180, 0.75)'; ctx.lineWidth = 1.5;
             ctx.beginPath(); for(let i = 0; i < barW; i += beatW) { ctx.moveTo(i, 0); ctx.lineTo(i, rowHeight); } ctx.stroke();
+            
+            // 小節線
             ctx.strokeStyle = '#ff1493'; ctx.lineWidth = 3;
             ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, rowHeight); ctx.stroke();
+            
             return `url(${canvas.toDataURL()})`;
         }
 
@@ -553,22 +569,67 @@
             const currentW = (currentMaxBars * 320) * zoomScale;
             gridEl.style.width = `${currentW}px`;
             const rowHeight = currentPart === 'drum' ? 40 : 20;
+            const totalHeight = currentPart === 'drum' ? drumNotes.length * 40 : totalKeys * 20;
             const barW = 320 * zoomScale;
             
-            gridEl.style.backgroundImage = generateGridBackground(rowHeight);
-            gridEl.style.backgroundSize = `${barW}px ${rowHeight}px`;
+            gridEl.style.height = `${totalHeight}px`;
+
+            gridLinesLayer.style.backgroundImage = generateGridBackground(rowHeight);
+            gridLinesLayer.style.backgroundSize = `${barW}px ${rowHeight}px`;
+
+            renderGridRowBackgrounds(currentW, rowHeight);
 
             const playheadContainer = document.getElementById('editor-playhead-container');
             if (playheadContainer) {
                 playheadContainer.style.width = `${currentW}px`;
-                playheadContainer.style.height = (currentPart === 'drum' ? drumNotes.length * 40 : totalKeys * 20) + 'px';
+                playheadContainer.style.height = `${totalHeight}px`;
             }
 
             document.querySelectorAll('.track-lane').forEach(lane => {
-                lane.style.width = `${currentW}px`; lane.style.backgroundImage = generateGridBackground(65); lane.style.backgroundSize = `${barW}px 65px`;
+                lane.style.width = `${currentW}px`;
+                const canvas = document.createElement('canvas');
+                canvas.width = barW; canvas.height = 65;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,barW,65);
+                ctx.strokeStyle = '#ffdae0'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(0, 64); ctx.lineTo(barW, 64); ctx.stroke();
+                
+                const q = parseInt(document.getElementById('quantize').value) || 16;
+                const qW = barW / q; const beatW = barW / 4;
+                ctx.strokeStyle = 'rgba(255, 105, 180, 0.12)';
+                ctx.beginPath(); for(let i = 0; i < barW; i += qW) { ctx.moveTo(i, 0); ctx.lineTo(i, 65); } ctx.stroke();
+                ctx.strokeStyle = 'rgba(255, 105, 180, 0.4)';
+                ctx.beginPath(); for(let i = 0; i < barW; i += beatW) { ctx.moveTo(i, 0); ctx.lineTo(i, 65); } ctx.stroke();
+                ctx.strokeStyle = '#ff69b4'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,65); ctx.stroke();
+                
+                lane.style.backgroundImage = `url(${canvas.toDataURL()})`;
+                lane.style.backgroundSize = `${barW}px 65px`;
             });
             document.getElementById('ruler').style.width = `${currentW}px`; document.getElementById('editor-ruler').style.width = `${currentW}px`;
             initRulers(); renderKeyboard(); refreshAllBoxesUI(); updatePlayheadUI(); updateEditorMasks();
+        }
+
+        function renderGridRowBackgrounds(width, rowHeight) {
+            gridBgLayer.innerHTML = '';
+            const count = currentPart === 'drum' ? drumNotes.length : totalKeys;
+            for(let i=0; i<count; i++) {
+                const row = document.createElement('div');
+                row.classList.add('grid-row-bg');
+                row.style.top = `${i * rowHeight}px`;
+                row.style.height = `${rowHeight}px`;
+                
+                if(currentPart === 'drum') {
+                    row.classList.add('white-row');
+                } else {
+                    if(freqMap[i] && freqMap[i].isBlack) {
+                        row.classList.add('black-row');
+                    } else {
+                        row.classList.add('white-row');
+                    }
+                }
+                gridBgLayer.appendChild(row);
+            }
         }
 
         function initRulers() {
@@ -587,17 +648,13 @@
         function renderKeyboard() {
             keyboardEl.innerHTML = '';
             if(currentPart === 'drum') {
-                gridEl.style.height = `${drumNotes.length * 40}px`;
-                drumNotes.forEach(name => { const key = document.createElement('div'); key.classList.add('key', 'drum-key'); key.style.height = '40px'; key.innerText = name; keyboardEl.appendChild(key); });
+                drumNotes.forEach(name => { const key = document.createElement('div'); key.classList.add('key', 'drum-key'); key.innerText = name; keyboardEl.appendChild(key); });
             } else {
-                gridEl.style.height = `${totalKeys * 20}px`;
-                octaves.forEach(oct => { 
-                    noteNames.forEach(name => { 
-                        const key = document.createElement('div'); 
-                        key.style.height = '20px'; key.classList.add('key');
-                        if(name.includes('#')) key.classList.add('black'); 
-                        key.innerText = name + oct; keyboardEl.appendChild(key); 
-                    }); 
+                freqMap.forEach(item => {
+                    const key = document.createElement('div'); 
+                    key.style.height = '20px'; key.classList.add('key');
+                    if(item.isBlack) key.classList.add('black'); 
+                    key.innerText = item.name; keyboardEl.appendChild(key);
                 });
             }
         }
@@ -622,15 +679,75 @@
             box.innerHTML = `<span class="box-title"></span><canvas class="box-preview-canvas"></canvas><div class="resizer-right"></div>`;
             
             setupUnifiedDrag(box, boxRegistry[boxId], true);
-            box.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if(currentTool === 'eraser') { saveHistory(); delete boxRegistry[boxId]; box.remove(); if(currentSelectedBoxId===boxId) selectBox(null); } else { selectBox(boxId); }
-            });
-            box.addEventListener('contextmenu', (e) => { e.preventDefault(); saveHistory(); delete boxRegistry[boxId]; box.remove(); if(currentSelectedBoxId===boxId) selectBox(null); });
+            setupBoxClickAndCut(box, boxRegistry[boxId]);
             box.querySelector('.resizer-right').addEventListener('mousedown', (e) => startBoxResize(e, box, boxRegistry[boxId]));
             box.querySelector('.resizer-right').addEventListener('touchstart', (e) => startBoxResize(e, box, boxRegistry[boxId]), {passive:false});
 
             document.getElementById(`lane-${part}`).appendChild(box); selectBox(boxId);
+        }
+
+        function setupBoxClickAndCut(boxElement, boxData) {
+            const handleTrigger = (clientX, e) => {
+                e.stopPropagation();
+                if(currentTool === 'eraser') { 
+                    saveHistory(); delete boxRegistry[boxData.id]; boxElement.remove(); if(currentSelectedBoxId===boxData.id) selectBox(null); 
+                } 
+                else if(currentTool === 'cut') {
+                    const rect = boxElement.getBoundingClientRect();
+                    const clickXInside = (clientX - rect.left) / zoomScale; 
+                    const step = getStepWidth() / zoomScale;
+                    const cutPointInside = Math.round(clickXInside / step) * step; 
+                    
+                    if(cutPointInside <= 0 || cutPointInside >= boxData.w) return; 
+
+                    saveHistory();
+                    boxCounter++;
+                    const newBoxId = `box-${boxCounter}`;
+                    
+                    const leftNotes = [];
+                    const rightNotes = [];
+                    boxData.notes.forEach(n => {
+                        if(n.x < cutPointInside) {
+                            leftNotes.push(n);
+                        } else {
+                            let newN = Object.assign({}, n);
+                            newN.x -= cutPointInside;
+                            rightNotes.push(newN);
+                        }
+                    });
+
+                    boxRegistry[newBoxId] = {
+                        id: newBoxId,
+                        part: boxData.part,
+                        x: boxData.x + cutPointInside,
+                        w: boxData.w - cutPointInside,
+                        name: `${boxData.part.toUpperCase()}-${boxCounter}`,
+                        notes: rightNotes
+                    };
+
+                    boxData.w = cutPointInside;
+                    boxData.notes = leftNotes;
+
+                    const rBox = document.createElement('div'); rBox.classList.add('midi-box'); rBox.id = newBoxId;
+                    rBox.innerHTML = `<span class="box-title"></span><canvas class="box-preview-canvas"></canvas><div class="resizer-right"></div>`;
+                    setupUnifiedDrag(rBox, boxRegistry[newBoxId], true);
+                    setupBoxClickAndCut(rBox, boxRegistry[newBoxId]);
+                    rBox.querySelector('.resizer-right').addEventListener('mousedown', (evt) => startBoxResize(evt, rBox, boxRegistry[newBoxId]));
+                    rBox.querySelector('.resizer-right').addEventListener('touchstart', (evt) => startBoxResize(evt, rBox, boxRegistry[newBoxId]), {passive:false});
+                    boxElement.parentNode.appendChild(rBox);
+
+                    updateBoxUI(boxData);
+                    updateBoxUI(boxRegistry[newBoxId]);
+                    selectBox(boxData.id);
+                }
+                else { 
+                    selectBox(boxData.id); 
+                }
+            };
+
+            boxElement.addEventListener('click', (e) => { if(!e.touches) handleTrigger(e.clientX, e); });
+            boxElement.addEventListener('touchstart', (e) => { if(e.touches.length === 1) handleTrigger(e.touches[0].clientX, e); }, {passive:true});
+            boxElement.addEventListener('contextmenu', (e) => { e.preventDefault(); saveHistory(); delete boxRegistry[boxData.id]; boxElement.remove(); if(currentSelectedBoxId===boxData.id) selectBox(null); });
         }
 
         function updateBoxUI(boxData) {
@@ -680,7 +797,8 @@
             let startX = 0, startY = 0, initialX = 0, initialY = 0; let noteSnapshot = []; 
 
             const onStart = (e) => {
-                if(currentTool === 'eraser' && !isBox) return; 
+                if(currentTool === 'eraser' && !isBox) return;
+                if(currentTool === 'cut' && isBox) return; 
                 if(e.button === 2) return; 
                 const touch = e.touches ? e.touches[0] : e;
                 if(e.target.classList.contains('resizer-right')) return;
@@ -795,7 +913,7 @@
         gridEl.addEventListener('touchstart', (e) => handleGridStart(e, true), {passive:false});
 
         function handleGridStart(e, isTouch) {
-            if (!currentSelectedBoxId || isResizingActive) return; if (e.target !== gridEl) return;
+            if (!currentSelectedBoxId || isResizingActive) return; if (e.target !== gridEl && e.target !== gridLinesLayer) return;
             
             const touch = isTouch ? e.touches[0] : e; const rect = gridEl.getBoundingClientRect();
             const gridX = (touch.clientX - rect.left) / zoomScale; const gridY = touch.clientY - rect.top;
@@ -893,7 +1011,9 @@
             const el = document.getElementById(containerId);
             const moveHead = (e) => {
                 const touch = e.touches ? e.touches[0] : e; const rect = el.getBoundingClientRect(); const clickXOnScreen = touch.clientX - rect.left;
-                const headerWidth = isTimeline ? 120 : 60; if (clickXOnScreen < headerWidth) return;
+                
+                /* 正しい幅(タイムラインは140px, エディタは80px)を正確に適用 */
+                const headerWidth = isTimeline ? 140 : 80; if (clickXOnScreen < headerWidth) return;
                 const scrollOffset = isTimeline ? timelineArea.scrollLeft : editorScroll.scrollLeft;
                 const absoluteVisualX = (clickXOnScreen - headerWidth) + scrollOffset;
                 let targetDataX = absoluteVisualX / zoomScale; if(targetDataX < 0) targetDataX = 0;
@@ -909,6 +1029,22 @@
             const visualX = playX * zoomScale;
             const tHead = document.getElementById('timeline-playhead'); if (tHead) tHead.style.transform = `translateX(${visualX}px)`;
             const eHead = document.getElementById('editor-playhead'); if (eHead) eHead.style.transform = `translateX(${visualX}px)`;
+
+            if (isPlaying) {
+                const tVisibleWidth = timelineArea.clientWidth - 140; 
+                if (visualX > timelineArea.scrollLeft + tVisibleWidth - 20) {
+                    timelineArea.scrollLeft = visualX - 40; 
+                } else if (visualX < timelineArea.scrollLeft) {
+                    timelineArea.scrollLeft = visualX;
+                }
+
+                const eVisibleWidth = editorScroll.clientWidth - 80; 
+                if (visualX > editorScroll.scrollLeft + eVisibleWidth - 20) {
+                    editorScroll.scrollLeft = visualX - 40;
+                } else if (visualX < editorScroll.scrollLeft) {
+                    editorScroll.scrollLeft = visualX;
+                }
+            }
         }
 
         function togglePlay() {
@@ -948,6 +1084,7 @@
         }
         document.getElementById('tool-pencil').addEventListener('click', () => setTool('pencil'));
         document.getElementById('tool-select').addEventListener('click', () => setTool('select'));
+        document.getElementById('tool-cut').addEventListener('click', () => setTool('cut')); 
         document.getElementById('tool-eraser').addEventListener('click', () => setTool('eraser'));
 
         let distStart = 0, scaleStart = 1.0;
