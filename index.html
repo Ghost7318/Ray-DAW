@@ -357,8 +357,9 @@
                 note: '#b38eff', noteSelected: '#8a4fff', pianoWhite: '#faf8ff', pianoBlack: '#3d2b5c', gridBlackRow: 'rgba(138, 79, 255, 0.05)'
             },
             mint: { 
-                main: '#f0fff8', dark: '#dffff0', accent: '#66cd9a', accentDark: '#2ebd92',
-                note: '#6f4e37', noteSelected: '#4a3121', pianoWhite: '#eff9f5', pianoBlack: '#4a3525', gridBlackRow: 'rgba(92, 64, 51, 0.06)'
+                /* チョコミント・パステルでお洒落にアップデート */
+                main: '#e8fbf4', dark: '#aaf0d1', accent: '#6c5b6b', accentDark: '#4a3e4a',
+                note: '#7e6b74', noteSelected: '#b8a9c9', pianoWhite: '#f5fffb', pianoBlack: '#4a3e4a', gridBlackRow: 'rgba(108, 91, 107, 0.06)'
             },
             yellow: { 
                 main: '#fffff0', dark: '#fff9d6', accent: '#ffd700', accentDark: '#ffa500',
@@ -1217,7 +1218,7 @@
             a.href = url; a.download = 'ray_project.mid'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
         });
 
-        // デフォルトテーマを「マカロンピンク」に指定して強制初期化
+        // 最初はデフォルトでマカロンピンクを適応
         changeTheme('pink');
         selectBox(null); 
         updatePlayheadUI();
