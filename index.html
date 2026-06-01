@@ -87,7 +87,8 @@
         }
 
         /* タイムライン */
-        .timeline { flex: 1; display: flex; flex-direction: column; overflow: auto; position: relative; -webkit-overflow-scrolling: touch; }
+        .timeline { flex: 1; display: flex; overflow: auto; position: relative; -webkit-overflow-scrolling: touch; }
+        .track-list { display: flex; flex-direction: column; width: max-content; }
         .track-row { display: flex; height: 65px; border-bottom: 1px solid var(--bg-dark); position: relative; width: max-content; }
         
         .track-header {
@@ -99,7 +100,8 @@
         .track-header .track-name { cursor: move; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .track-header select { width: 100%; font-size: 9px; padding: 1px; }
 
-        .track-lane { position: relative; height: 100%; width: max-content; }
+        /* 【修正】自動縮小を防ぎ、横幅が正しく確保されるように変更 */
+        .track-lane { position: relative; height: 100%; flex-shrink: 0; }
 
         /* 再生バー */
         .playhead {
@@ -166,7 +168,8 @@
         .key.black { background: var(--piano-black); color: var(--white); border-bottom: 1px solid #222; }
         .key.drum-key { background: var(--bg-main); border-bottom: 1px solid var(--bg-dark); color: var(--accent-pink); height: 40px; }
         
-        .note-grid { position: relative; left: 0px; top: 0; background-color: #fff; width: max-content; height: max-content; }
+        /* 【修正】自動縮小を防ぎ、横幅が100%確保されるように変更 */
+        .note-grid { position: relative; left: 0px; top: 0; background-color: #fff; height: max-content; flex-shrink: 0; }
         
         /* 背景色・グリッドレイヤー */
         .grid-bg-layer { position: absolute; top:0; left:0; pointer-events:none; z-index: 0; }
@@ -274,36 +277,38 @@
     </div>
 
     <div class="timeline" id="timeline-area">
-        <div class="timeline-playhead-container" id="timeline-playhead-container">
-            <div class="playhead" id="timeline-playhead"></div>
-        </div>
-        
-        <div class="track-row" data-part="drum">
-            <div class="track-header">
-                <div class="track-name">🥁 drum ↕↔</div>
+        <div class="track-list">
+            <div class="timeline-playhead-container" id="timeline-playhead-container">
+                <div class="playhead" id="timeline-playhead"></div>
             </div>
-            <div class="track-lane" id="lane-drum"></div>
-        </div>
-        <div class="track-row" data-part="melody">
-            <div class="track-header">
-                <div class="track-name">🎹 melody ↕↔</div>
-                <select id="wave-melody"><option value="triangle" selected>Tri (三角波)</option><option value="sawtooth">Saw (鋸歯状)</option><option value="square">Squ (矩形波)</option><option value="sine">Sin (正弦波)</option></select>
+            
+            <div class="track-row" data-part="drum">
+                <div class="track-header">
+                    <div class="track-name">🥁 drum ↕↔</div>
+                </div>
+                <div class="track-lane" id="lane-drum"></div>
             </div>
-            <div class="track-lane" id="lane-melody"></div>
-        </div>
-        <div class="track-row" data-part="chord">
-            <div class="track-header">
-                <div class="track-name">🎸 chords ↕↔</div>
-                <select id="wave-chord"><option value="triangle" selected>Tri (三角波)</option><option value="sawtooth">Saw (鋸歯状)</option><option value="square">Squ (矩形波)</option><option value="sine">Sin (正弦波)</option></select>
+            <div class="track-row" data-part="melody">
+                <div class="track-header">
+                    <div class="track-name">🎹 melody ↕↔</div>
+                    <select id="wave-melody"><option value="triangle" selected>Tri (三角波)</option><option value="sawtooth">Saw (鋸歯状)</option><option value="square">Squ (矩形波)</option><option value="sine">Sin (正弦波)</option></select>
+                </div>
+                <div class="track-lane" id="lane-melody"></div>
             </div>
-            <div class="track-lane" id="lane-chord"></div>
-        </div>
-        <div class="track-row" data-part="bass">
-            <div class="track-header">
-                <div class="track-name">🎻 bass ↕↔</div>
-                <select id="wave-bass"><option value="sawtooth" selected>Saw (鋸歯状)</option><option value="square">Squ (矩形波)</option><option value="triangle">Tri (三角波)</option><option value="sine">Sin (正弦波)</option></select>
+            <div class="track-row" data-part="chord">
+                <div class="track-header">
+                    <div class="track-name">🎸 chords ↕↔</div>
+                    <select id="wave-chord"><option value="triangle" selected>Tri (三角波)</option><option value="sawtooth">Saw (鋸歯状)</option><option value="square">Squ (矩形波)</option><option value="sine">Sin (正弦波)</option></select>
+                </div>
+                <div class="track-lane" id="lane-chord"></div>
             </div>
-            <div class="track-lane" id="lane-bass"></div>
+            <div class="track-row" data-part="bass">
+                <div class="track-header">
+                    <div class="track-name">🎻 bass ↕↔</div>
+                    <select id="wave-bass"><option value="sawtooth" selected>Saw (鋸歯状)</option><option value="square">Squ (矩形波)</option><option value="triangle">Tri (三角波)</option><option value="sine">Sin (正弦波)</option></select>
+                </div>
+                <div class="track-lane" id="lane-bass"></div>
+            </div>
         </div>
     </div>
 
@@ -701,8 +706,8 @@
                 e.stopPropagation();
                 if(currentTool === 'eraser') { deleteBoxData(boxData.id, boxElement); } 
                 else if(currentTool === 'cut') {
-                    const rect = boxElement.getBoundingClientRect(); const clickXInside = (clientX - rect.left) / zoomScale;
-                    const step = getStepWidth() / zoomScale; const cutPointInside = Math.round(clickXInside / step) * step;
+                    const rect = boxElement.getBoundingClientRect(); const clickX = (clientX - rect.left) / zoomScale;
+                    const step = getStepWidth() / zoomScale; const cutPointInside = Math.round(clickX / step) * step;
                     if(cutPointInside <= 0 || cutPointInside >= boxData.w) return;
 
                     saveHistory(); boxCounter++; const newBoxId = `box-${boxCounter}`;
