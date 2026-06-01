@@ -62,7 +62,6 @@
         button.active { background-color: var(--accent-dark); box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
         button.util-btn { background-color: #a04580; }
         button.undo-btn { background-color: #ff8c00; }
-        button.delete-btn { background-color: #d9534f; }
         button.midi-btn { background-color: #4b0082; }
 
         input, select { 
@@ -182,8 +181,8 @@
         }
         #editor-playhead { height: 100%; left: 0; }
 
-        /* スモークガラス風未選択マスク */
-        .grid-mask { position: absolute; top: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.08); pointer-events: none; z-index: 2; width: 0px; backdrop-filter: blur(1px); }
+        /* 未選択マスク */
+        .grid-mask { position: absolute; top: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.08); pointer-events: none; z-index: 2; width: 0px; }
         .grid-mask.left { left: 0; }
         .grid-mask.right { left: 0; }
 
@@ -234,7 +233,6 @@
             <div class="control-group">
                 <button id="btn-copy" class="util-btn">📋コピー</button>
                 <button id="btn-paste" class="util-btn">📥貼り付け</button>
-                <button id="btn-delete" class="delete-btn">🗑️消去</button>
             </div>
             <div class="control-group">
                 <label>BPM:</label>
@@ -351,39 +349,20 @@
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
         const themes = {
-            pink: { 
-                main: '#fff0f5', dark: '#ffe4e1', accent: '#ff69b4', accentDark: '#ff1493',
-                note: '#ff69b4', noteSelected: '#ff1493', pianoWhite: '#fffaf0', pianoBlack: '#4a4a4a', gridBlackRow: 'rgba(255, 105, 180, 0.05)'
-            },
-            purple: { 
-                main: '#f5f0ff', dark: '#e6dbff', accent: '#b38eff', accentDark: '#8a4fff',
-                note: '#b38eff', noteSelected: '#8a4fff', pianoWhite: '#faf8ff', pianoBlack: '#3d2b5c', gridBlackRow: 'rgba(138, 79, 255, 0.05)'
-            },
-            mint: { 
-                main: '#e8fbf4', dark: '#aaf0d1', accent: '#6c5b6b', accentDark: '#4a3e4a',
-                note: '#7e6b74', noteSelected: '#b8a9c9', pianoWhite: '#f5fffb', pianoBlack: '#4a3e4a', gridBlackRow: 'rgba(108, 91, 107, 0.06)'
-            },
-            yellow: { 
-                main: '#fffff0', dark: '#fff9d6', accent: '#ffd700', accentDark: '#ffa500',
-                note: '#ffd700', noteSelected: '#ffa500', pianoWhite: '#fffff8', pianoBlack: '#443300', gridBlackRow: 'rgba(255, 165, 0, 0.05)'
-            },
-            milk: { 
-                main: '#fafafa', dark: '#f5e6e8', accent: '#f0a8b9', accentDark: '#d1627c',
-                note: '#f0a8b9', noteSelected: '#d1627c', pianoWhite: '#fcfcfc', pianoBlack: '#4a3b3d', gridBlackRow: 'rgba(209, 98, 124, 0.05)'
-            }
+            pink: { main: '#fff0f5', dark: '#ffe4e1', accent: '#ff69b4', accentDark: '#ff1493', note: '#ff69b4', noteSelected: '#ff1493', pianoWhite: '#fffaf0', pianoBlack: '#4a4a4a', gridBlackRow: 'rgba(255, 105, 180, 0.05)' },
+            purple: { main: '#f5f0ff', dark: '#e6dbff', accent: '#b38eff', accentDark: '#8a4fff', note: '#b38eff', noteSelected: '#8a4fff', pianoWhite: '#faf8ff', pianoBlack: '#3d2b5c', gridBlackRow: 'rgba(138, 79, 255, 0.05)' },
+            mint: { main: '#e8fbf4', dark: '#aaf0d1', accent: '#6c5b6b', accentDark: '#4a3e4a', note: '#7e6b74', noteSelected: '#b8a9c9', pianoWhite: '#f5fffb', pianoBlack: '#4a3e4a', gridBlackRow: 'rgba(108, 91, 107, 0.06)' },
+            yellow: { main: '#fffff0', dark: '#fff9d6', accent: '#ffd700', accentDark: '#ffa500', note: '#ffd700', noteSelected: '#ffa500', pianoWhite: '#fffff8', pianoBlack: '#443300', gridBlackRow: 'rgba(255, 165, 0, 0.05)' },
+            milk: { main: '#fafafa', dark: '#f5e6e8', accent: '#f0a8b9', accentDark: '#d1627c', note: '#f0a8b9', noteSelected: '#d1627c', pianoWhite: '#fcfcfc', pianoBlack: '#4a3b3d', gridBlackRow: 'rgba(209, 98, 124, 0.05)' }
         };
 
         function changeTheme(themeName) {
             const t = themes[themeName] || themes.pink;
             const root = document.documentElement;
-            root.style.setProperty('--bg-main', t.main);
-            root.style.setProperty('--bg-dark', t.dark);
-            root.style.setProperty('--accent-pink', t.accent);
-            root.style.setProperty('--accent-dark', t.accentDark);
-            root.style.setProperty('--note-color', t.note);
-            root.style.setProperty('--note-selected', t.noteSelected);
-            root.style.setProperty('--piano-white', t.pianoWhite);
-            root.style.setProperty('--piano-black', t.pianoBlack);
+            root.style.setProperty('--bg-main', t.main); root.style.setProperty('--bg-dark', t.dark);
+            root.style.setProperty('--accent-pink', t.accent); root.style.setProperty('--accent-dark', t.accentDark);
+            root.style.setProperty('--note-color', t.note); root.style.setProperty('--note-selected', t.noteSelected);
+            root.style.setProperty('--piano-white', t.pianoWhite); root.style.setProperty('--piano-black', t.pianoBlack);
             root.style.setProperty('--grid-black-row', t.gridBlackRow);
             updateGridPattern();
         }
@@ -546,13 +525,9 @@
                 selectBox(null);
             }
         }
-        document.getElementById('btn-delete').addEventListener('click', doDeleteSelected);
 
         window.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
-                return;
-            }
-            
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
             const isCtrl = e.ctrlKey || e.metaKey;
             if (isCtrl && e.code === 'KeyA') {
                 e.preventDefault();
@@ -579,10 +554,12 @@
             const barW = 320 * zoomScale;
             const q = parseInt(document.getElementById('quantize').value) || 16;
             const qW = barW / q; const beatW = barW / 4; 
+            const dpr = window.devicePixelRatio || 1; 
+            
             const canvas = document.createElement('canvas');
-            canvas.width = barW; canvas.height = rowHeight;
+            canvas.width = barW * dpr; canvas.height = rowHeight * dpr;
             const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, barW, rowHeight);
+            ctx.scale(dpr, dpr);
             
             const currentAccent = getComputedStyle(document.documentElement).getPropertyValue('--accent-pink').trim();
             const currentAccentDark = getComputedStyle(document.documentElement).getPropertyValue('--accent-dark').trim();
@@ -602,12 +579,9 @@
             const totalHeight = currentPart === 'drum' ? drumNotes.length * 40 : totalKeys * 20;
             const barW = 320 * zoomScale;
             
-            gridEl.style.width = `${currentW}px`;
-            gridEl.style.height = `${totalHeight}px`;
-            gridBgLayer.style.width = `${currentW}px`;
-            gridBgLayer.style.height = `${totalHeight}px`;
-            gridLinesLayer.style.width = `${currentW}px`;
-            gridLinesLayer.style.height = `${totalHeight}px`;
+            gridEl.style.width = `${currentW}px`; gridEl.style.height = `${totalHeight}px`;
+            gridBgLayer.style.width = `${currentW}px`; gridBgLayer.style.height = `${totalHeight}px`;
+            gridLinesLayer.style.width = `${currentW}px`; gridLinesLayer.style.height = `${totalHeight}px`;
 
             gridLinesLayer.style.backgroundImage = generateGridBackground(rowHeight);
             gridLinesLayer.style.backgroundSize = `${barW}px ${rowHeight}px`;
@@ -615,19 +589,19 @@
             renderGridRowBackgrounds(currentW, rowHeight);
 
             const playheadContainer = document.getElementById('editor-playhead-container');
-            if (playheadContainer) {
-                playheadContainer.style.width = `${currentW}px`;
-                playheadContainer.style.height = `${totalHeight}px`;
-            }
+            if (playheadContainer) { playheadContainer.style.width = `${currentW}px`; playheadContainer.style.height = `${totalHeight}px`; }
 
             const currentAccent = getComputedStyle(document.documentElement).getPropertyValue('--accent-pink').trim();
             const currentDarkBg = getComputedStyle(document.documentElement).getPropertyValue('--bg-dark').trim();
 
             document.querySelectorAll('.track-lane').forEach(lane => {
                 lane.style.width = `${currentW}px`;
+                const dpr = window.devicePixelRatio || 1; 
                 const canvas = document.createElement('canvas');
-                canvas.width = barW; canvas.height = 65;
+                canvas.width = barW * dpr; canvas.height = 65 * dpr;
                 const ctx = canvas.getContext('2d');
+                ctx.scale(dpr, dpr);
+                
                 ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,barW,65);
                 ctx.strokeStyle = currentDarkBg; ctx.lineWidth = 1;
                 ctx.beginPath(); ctx.moveTo(0, 64); ctx.lineTo(barW, 64); ctx.stroke();
@@ -691,30 +665,21 @@
             const currentW = (currentMaxBars * 320) * zoomScale;
             
             if(!currentSelectedBoxId || !boxRegistry[currentSelectedBoxId]) {
-                maskL.style.width = '0px'; 
-                maskR.style.left = '0px'; 
-                maskR.style.width = `${currentW}px`; 
+                maskL.style.width = '0px'; maskR.style.left = '0px'; maskR.style.width = `${currentW}px`; 
                 return;
             }
             const box = boxRegistry[currentSelectedBoxId];
-            const leftW = box.x * zoomScale;
-            const rightStart = (box.x + box.w) * zoomScale;
-            
-            maskL.style.width = `${leftW}px`;
-            maskR.style.left = `${rightStart}px`;
-            maskR.style.width = `${Math.max(0, currentW - rightStart)}px`;
+            const leftW = box.x * zoomScale; const rightStart = (box.x + box.w) * zoomScale;
+            maskL.style.width = `${leftW}px`; maskR.style.left = `${rightStart}px`; maskR.style.width = `${Math.max(0, currentW - rightStart)}px`;
         }
 
         function createTrackBox(part, startXInside) {
-            let step = getStepWidth() / zoomScale;
-            let alignedX = Math.floor(startXInside / step) * step;
-            
+            let step = getStepWidth() / zoomScale; let alignedX = Math.floor(startXInside / step) * step;
             if (isBoxOverlapping(null, part, alignedX, 320)) {
                 const duplicate = Object.values(boxRegistry).find(b => b.part === part && alignedX < b.x + b.w && alignedX + 320 > b.x);
-                if(duplicate) { selectBox(duplicate.id); }
+                if(duplicate) selectBox(duplicate.id);
                 return;
             }
-
             saveHistory(); boxCounter++; const boxId = `box-${boxCounter}`;
             boxRegistry[boxId] = { id: boxId, part: part, x: alignedX, w: 320, name: `${part.toUpperCase()}-${boxCounter}`, notes: [] };
 
@@ -724,8 +689,7 @@
             box.querySelector('.resizer-right').addEventListener('mousedown', (e) => startBoxResize(e, box, boxRegistry[boxId]));
             box.querySelector('.resizer-right').addEventListener('touchstart', (e) => startBoxResize(e, box, boxRegistry[boxId]), {passive:false});
 
-            document.getElementById(`lane-${part}`).appendChild(box);
-            selectBox(boxId);
+            document.getElementById(`lane-${part}`).appendChild(box); selectBox(boxId);
         }
 
         function deleteBoxData(boxId, boxElement) {
@@ -735,13 +699,10 @@
         function setupBoxClickAndCut(boxElement, boxData) {
             const handleTrigger = (clientX, e) => {
                 e.stopPropagation();
-                if(currentTool === 'eraser') {
-                    deleteBoxData(boxData.id, boxElement);
-                } else if(currentTool === 'cut') {
-                    const rect = boxElement.getBoundingClientRect();
-                    const clickXInside = (clientX - rect.left) / zoomScale;
-                    const step = getStepWidth() / zoomScale;
-                    const cutPointInside = Math.round(clickXInside / step) * step;
+                if(currentTool === 'eraser') { deleteBoxData(boxData.id, boxElement); } 
+                else if(currentTool === 'cut') {
+                    const rect = boxElement.getBoundingClientRect(); const clickXInside = (clientX - rect.left) / zoomScale;
+                    const step = getStepWidth() / zoomScale; const cutPointInside = Math.round(clickXInside / step) * step;
                     if(cutPointInside <= 0 || cutPointInside >= boxData.w) return;
 
                     saveHistory(); boxCounter++; const newBoxId = `box-${boxCounter}`;
@@ -759,11 +720,8 @@
                     rBox.querySelector('.resizer-right').addEventListener('mousedown', (evt) => startBoxResize(evt, rBox, boxRegistry[newBoxId]));
                     rBox.querySelector('.resizer-right').addEventListener('touchstart', (evt) => startBoxResize(evt, rBox, boxRegistry[newBoxId]), {passive:false});
                     boxElement.parentElement.appendChild(rBox);
-
                     selectBox(boxData.id);
-                } else {
-                    selectBox(boxData.id);
-                }
+                } else { selectBox(boxData.id); }
             };
 
             boxElement.addEventListener('click', (e) => { if(e.button === 0) handleTrigger(e.clientX, e); });
@@ -794,24 +752,18 @@
         function startBoxResize(e, boxElement, boxData) {
             e.stopPropagation(); e.preventDefault();
             const startX = e.clientX || (e.touches && e.touches[0].clientX);
-            const startW = boxData.w; const step = getStepWidth() / zoomScale;
-            isResizingActive = true;
+            const startW = boxData.w; const step = getStepWidth() / zoomScale; isResizingActive = true;
 
             const onMove = (evt) => {
                 const curX = evt.clientX || (evt.touches && evt.touches[0].clientX);
-                let delta = (curX - startX) / zoomScale;
-                let nw = Math.round((startW + delta) / step) * step;
+                let delta = (curX - startX) / zoomScale; let nw = Math.round((startW + delta) / step) * step;
                 if(nw < step) nw = step;
-                boxData.w = nw; boxElement.style.width = `${nw * zoomScale}px`;
-                updateEditorMasks();
+                boxData.w = nw; boxElement.style.width = `${nw * zoomScale}px`; updateEditorMasks();
             };
             const onEnd = () => {
                 isResizingActive = false;
-                if (isBoxOverlapping(boxData.id, boxData.part, boxData.x, boxData.w)) {
-                    boxData.w = startW; boxElement.style.width = `${startW * zoomScale}px`;
-                } else {
-                    saveHistory();
-                }
+                if (isBoxOverlapping(boxData.id, boxData.part, boxData.x, boxData.w)) { boxData.w = startW; boxElement.style.width = `${startW * zoomScale}px`; } 
+                else { saveHistory(); }
                 updateBoxUI(boxData); updateEditorMasks();
                 window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onEnd);
                 window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onEnd);
@@ -823,32 +775,43 @@
         function startNoteResize(e, noteElement, noteData, parentBox) {
             e.stopPropagation(); e.preventDefault();
             const startX = e.clientX || (e.touches && e.touches[0].clientX);
-            const startW = noteData.w; 
-            const step = getStepWidth() / zoomScale;
-            isResizingActive = true;
+            const step = getStepWidth() / zoomScale; isResizingActive = true;
+
+            let targets = [];
+            if (noteData.selected) {
+                targets = parentBox.notes.filter(n => n.selected).map(n => ({ note: n, origW: n.w, el: document.getElementById(n.id) }));
+            } else {
+                targets = [{ note: noteData, origW: noteData.w, el: noteElement }];
+            }
 
             const onMove = (evt) => {
                 const curX = evt.clientX || (evt.touches && evt.touches[0].clientX);
                 let delta = (curX - startX) / zoomScale;
-                let nw = Math.round((startW + delta) / step) * step;
-                if(nw < step) nw = step;
-                
-                if (noteData.x + nw > parentBox.w) {
-                    nw = parentBox.w - noteData.x;
-                }
+                let deltaGrid = Math.round(delta / step) * step;
 
-                noteData.w = nw; 
-                noteElement.style.width = `${nw * zoomScale}px`;
+                targets.forEach(t => {
+                    let nw = t.origW + deltaGrid;
+                    if (nw < step) nw = step;
+                    if (t.note.x + nw > parentBox.w) nw = parentBox.w - t.note.x;
+                    t.note.w = nw;
+                    if (t.el) t.el.style.width = `${nw * zoomScale}px`;
+                });
             };
 
             const onEnd = () => {
                 isResizingActive = false;
-                if (isNoteOverlapping(parentBox, noteData.id, noteData.x, noteData.y, noteData.w)) {
-                    noteData.w = startW; 
-                    noteElement.style.width = `${startW * zoomScale}px`;
-                } else {
-                    saveHistory();
+                let hasOverlap = false;
+                const nonTargetNotes = parentBox.notes.filter(n => !targets.some(t => t.note.id === n.id));
+                
+                for (let t of targets) {
+                    let overlap = nonTargetNotes.some(n => { return (t.note.y === n.y && !(t.note.x + t.note.w <= n.x || n.x + n.w <= t.note.x)); });
+                    if (overlap) { hasOverlap = true; break; }
                 }
+
+                if (hasOverlap) {
+                    targets.forEach(t => { t.note.w = t.origW; if (t.el) t.el.style.width = `${t.origW * zoomScale}px`; });
+                } else { saveHistory(); }
+                
                 updateBoxUI(parentBox);
                 window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onEnd);
                 window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onEnd);
@@ -861,60 +824,43 @@
         function setupUnifiedDrag(element, dataObj, isTimelineBox=false) {
             element.style.left = `${dataObj.x * zoomScale}px`;
             if(isTimelineBox) element.style.width = `${dataObj.w * zoomScale}px`;
-
-            let startX, origX;
-            const stepW = getStepWidth() / zoomScale;
+            let startX, origX; const stepW = getStepWidth() / zoomScale;
 
             const onStart = (e) => {
                 if(e.button === 2 || isResizingActive || currentTool === 'eraser' || currentTool === 'cut') return;
                 if (e.target.classList.contains('resizer-right')) return;
-                e.stopPropagation();
-                startX = e.clientX || (e.touches && e.touches[0].clientX);
-                origX = dataObj.x;
-
+                e.stopPropagation(); startX = e.clientX || (e.touches && e.touches[0].clientX); origX = dataObj.x;
                 window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onEnd);
                 window.addEventListener('touchmove', onMove, {passive:false}); window.addEventListener('touchend', onEnd);
             };
 
             const onMove = (evt) => {
-                evt.preventDefault();
-                const curX = evt.clientX || (evt.touches && evt.touches[0].clientX);
+                evt.preventDefault(); const curX = evt.clientX || (evt.touches && evt.touches[0].clientX);
                 if (curX === undefined) return;
-                let dx = (curX - startX) / zoomScale;
-                let nx = Math.round((origX + dx) / stepW) * stepW;
-                if(nx < 0) nx = 0; dataObj.x = nx; element.style.left = `${nx * zoomScale}px`;
-                updateEditorMasks();
+                let dx = (curX - startX) / zoomScale; let nx = Math.round((origX + dx) / stepW) * stepW;
+                if(nx < 0) nx = 0; dataObj.x = nx; element.style.left = `${nx * zoomScale}px`; updateEditorMasks();
             };
 
             const onEnd = () => {
-                if (isBoxOverlapping(dataObj.id, dataObj.part, dataObj.x, dataObj.w)) {
-                    dataObj.x = origX; element.style.left = `${origX * zoomScale}px`;
-                } else {
-                    saveHistory();
-                }
+                if (isBoxOverlapping(dataObj.id, dataObj.part, dataObj.x, dataObj.w)) { dataObj.x = origX; element.style.left = `${origX * zoomScale}px`; } 
+                else { saveHistory(); }
                 updateBoxUI(dataObj); updateEditorMasks();
                 window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onEnd);
                 window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onEnd);
             };
 
-            element.addEventListener('mousedown', onStart);
-            element.addEventListener('touchstart', onStart, {passive:true});
+            element.addEventListener('mousedown', onStart); element.addEventListener('touchstart', onStart, {passive:true});
         }
 
         function setupNoteDrag(element, noteData, parentBox) {
-            let startX, startY;
-            let selectedNotesRefs = [];
-            const stepW = getStepWidth() / zoomScale;
-            let rowH = currentPart === 'drum' ? 40 : 20;
-            let isMoved = false;
+            let startX, startY; let selectedNotesRefs = [];
+            const stepW = getStepWidth() / zoomScale; let rowH = currentPart === 'drum' ? 40 : 20; let isMoved = false;
 
             const onStart = (e) => {
                 if (e.button === 2 || isResizingActive || currentTool !== 'select') return;
                 if (e.target.classList.contains('note-resizer-right')) return;
                 e.stopPropagation();
-
-                startX = e.clientX || (e.touches && e.touches[0].clientX);
-                startY = e.clientY || (e.touches && e.touches[0].clientY);
+                startX = e.clientX || (e.touches && e.touches[0].clientX); startY = e.clientY || (e.touches && e.touches[0].clientY);
                 isMoved = false;
 
                 window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onEnd);
@@ -927,43 +873,26 @@
                 const curY = evt.clientY || (evt.touches && evt.touches[0].clientY);
                 if (curX === undefined || curY === undefined) return;
 
-                let dx = (curX - startX) / zoomScale;
-                let dy = curY - startY;
-
-                let deltaGridX = Math.round(dx / stepW) * stepW;
-                let deltaGridY = Math.round(dy / rowH);
+                let dx = (curX - startX) / zoomScale; let dy = curY - startY;
+                let deltaGridX = Math.round(dx / stepW) * stepW; let deltaGridY = Math.round(dy / rowH);
 
                 if (!isMoved && (deltaGridX !== 0 || deltaGridY !== 0)) {
                     isMoved = true;
                     if (!noteData.selected) {
                         parentBox.notes.forEach(n => n.selected = false);
                         document.querySelectorAll('.piano-note').forEach(el => el.classList.remove('selected'));
-                        noteData.selected = true;
-                        element.classList.add('selected');
+                        noteData.selected = true; element.classList.add('selected');
                     }
-
-                    selectedNotesRefs = parentBox.notes.filter(n => n.selected).map(n => {
-                        return { note: n, origX: n.x, origY: n.y, el: document.getElementById(n.id) };
-                    });
+                    selectedNotesRefs = parentBox.notes.filter(n => n.selected).map(n => ({ note: n, origX: n.x, origY: n.y, el: document.getElementById(n.id) }));
                 }
 
                 if (isMoved) {
                     selectedNotesRefs.forEach(ref => {
-                        let nx = ref.origX + deltaGridX;
-                        if (nx < 0) nx = 0;
-                        if (nx + ref.note.w > parentBox.w) nx = parentBox.w - ref.note.w;
-                        
-                        let ny = ref.origY + deltaGridY;
-                        let maxRow = currentPart === 'drum' ? drumNotes.length - 1 : totalKeys - 1;
+                        let nx = ref.origX + deltaGridX; if (nx < 0) nx = 0; if (nx + ref.note.w > parentBox.w) nx = parentBox.w - ref.note.w;
+                        let ny = ref.origY + deltaGridY; let maxRow = currentPart === 'drum' ? drumNotes.length - 1 : totalKeys - 1;
                         if (ny < 0) ny = 0; if (ny > maxRow) ny = maxRow;
-
-                        ref.note.x = nx;
-                        ref.note.y = ny;
-
-                        if (ref.el) {
-                            ref.el.style.left = `${(parentBox.x + nx) * zoomScale}px`;
-                            ref.el.style.top = `${ny * rowH + 2}px`;
-                        }
+                        ref.note.x = nx; ref.note.y = ny;
+                        if (ref.el) { ref.el.style.left = `${(parentBox.x + nx) * zoomScale}px`; ref.el.style.top = `${ny * rowH + 2}px`; }
                     });
                 }
             };
@@ -972,46 +901,28 @@
                 window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onEnd);
                 window.removeEventListener('touchmove', onMove); window.removeEventListener('touchend', onEnd);
 
-                if (!isMoved) {
-                    noteData.selected = !noteData.selected;
-                    element.classList.toggle('selected', noteData.selected);
-                    return;
-                }
+                if (!isMoved) { noteData.selected = !noteData.selected; element.classList.toggle('selected', noteData.selected); return; }
 
-                let hasOverlap = false;
-                const nonSelectedNotes = parentBox.notes.filter(n => !n.selected);
+                let hasOverlap = false; const nonSelectedNotes = parentBox.notes.filter(n => !n.selected);
                 
                 for (let ref of selectedNotesRefs) {
-                    let overlapWithStatic = nonSelectedNotes.some(n => {
-                        return (ref.note.y === n.y && !(ref.note.x + ref.note.w <= n.x || n.x + n.w <= ref.note.x));
-                    });
+                    let overlapWithStatic = nonSelectedNotes.some(n => { return (ref.note.y === n.y && !(ref.note.x + ref.note.w <= n.x || n.x + n.w <= ref.note.x)); });
                     let overlapWithSelected = selectedNotesRefs.some(other => {
                         if (other.note.id === ref.note.id) return false;
                         return (ref.note.y === other.note.y && !(ref.note.x + ref.note.w <= other.note.x || other.note.x + other.note.w <= ref.note.x));
                     });
-
-                    if (overlapWithStatic || overlapWithSelected) {
-                        hasOverlap = true; break;
-                    }
+                    if (overlapWithStatic || overlapWithSelected) { hasOverlap = true; break; }
                 }
 
                 if (hasOverlap) {
                     selectedNotesRefs.forEach(ref => {
                         ref.note.x = ref.origX; ref.note.y = ref.origY;
-                        if (ref.el) {
-                            ref.el.style.left = `${(parentBox.x + ref.origX) * zoomScale}px`;
-                            ref.el.style.top = `${ref.origY * rowH + 2}px`;
-                        }
+                        if (ref.el) { ref.el.style.left = `${(parentBox.x + ref.origX) * zoomScale}px`; ref.el.style.top = `${ref.origY * rowH + 2}px`; }
                     });
-                } else {
-                    saveHistory();
-                }
-
+                } else { saveHistory(); }
                 updateBoxUI(parentBox);
             };
-
-            element.addEventListener('mousedown', onStart);
-            element.addEventListener('touchstart', onStart, { passive: true });
+            element.addEventListener('mousedown', onStart); element.addEventListener('touchstart', onStart, { passive: true });
         }
 
         function updateBoxUI(boxData) {
@@ -1020,8 +931,10 @@
             el.querySelector('.box-title').innerText = boxData.name;
 
             const canvas = el.querySelector('.box-preview-canvas');
-            canvas.width = boxData.w; canvas.height = 16;
-            const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const dpr = window.devicePixelRatio || 1; 
+            canvas.width = boxData.w * dpr; canvas.height = 16 * dpr;
+            const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, boxData.w, 16);
             ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent-dark').trim();
             boxData.notes.forEach(n => { ctx.fillRect(n.x, 4, n.w, 8); });
         }
@@ -1053,18 +966,13 @@
         }
 
         function setupNoteInteraction(noteEl, noteData, parentBox) {
-            const deleteNote = () => {
-                saveHistory(); parentBox.notes = parentBox.notes.filter(n => n.id !== noteData.id); noteEl.remove(); updateBoxUI(parentBox);
-            };
-
+            const deleteNote = () => { saveHistory(); parentBox.notes = parentBox.notes.filter(n => n.id !== noteData.id); noteEl.remove(); updateBoxUI(parentBox); };
             noteEl.addEventListener('click', (e) => {
                 if (e.button === 2) return; 
                 if (e.target.classList.contains('note-resizer-right')) return;
                 e.stopPropagation();
                 if(currentTool === 'eraser') { deleteNote(); } 
-                else if(currentTool === 'select') { 
-                } 
-                else {
+                else if(currentTool !== 'select') {
                     if(currentPart === 'drum') { playTone(0, 0.1, 'drum', drumNotes[noteData.y]); } 
                     else { if(freqMap[noteData.y]) playTone(freqMap[noteData.y].freq, 0.2, currentPart); }
                 }
@@ -1085,13 +993,9 @@
             if (targetX < 0) targetX = 0;
             const maxW = currentMaxBars * 320; 
             if (targetX > maxW) targetX = maxW;
-            
-            // 【修正】クオンタイズ値にスナップさせる
             const step = getStepWidth() / zoomScale;
             targetX = Math.round(targetX / step) * step;
-
-            playX = targetX; 
-            updatePlayheadUI();
+            playX = targetX; updatePlayheadUI();
         }
 
         function handleGridNewNoteStart(clientX, clientY) {
@@ -1099,14 +1003,9 @@
             if(!currentSelectedBoxId || !boxRegistry[currentSelectedBoxId]) return;
             const box = boxRegistry[currentSelectedBoxId]; if(box.part !== currentPart) return;
 
-            const rect = gridEl.getBoundingClientRect();
-            const clickX = (clientX - rect.left) / zoomScale; 
-            const clickY = clientY - rect.top;
-
-            let rowH = currentPart === 'drum' ? 40 : 20;
-            let targetY = Math.floor(clickY / rowH);
-            let stepW = getStepWidth() / zoomScale;
-            let targetXInside = Math.floor((clickX - box.x) / stepW) * stepW;
+            const rect = gridEl.getBoundingClientRect(); const clickX = (clientX - rect.left) / zoomScale; const clickY = clientY - rect.top;
+            let rowH = currentPart === 'drum' ? 40 : 20; let targetY = Math.floor(clickY / rowH);
+            let stepW = getStepWidth() / zoomScale; let targetXInside = Math.floor((clickX - box.x) / stepW) * stepW;
 
             if(targetXInside >= 0 && targetXInside < box.w) {
                 if (isNoteOverlapping(box, null, targetXInside, targetY, stepW)) return;
@@ -1119,10 +1018,7 @@
                 if(currentPart === 'drum') { playTone(0, 0.1, 'drum', drumNotes[targetY]); } 
                 else { if(freqMap[targetY]) playTone(freqMap[targetY].freq, 0.2, currentPart); }
                 
-                refreshEditorContainer(); 
-                updateBoxUI(box);
-
-                isResizingActive = true;
+                refreshEditorContainer(); updateBoxUI(box); isResizingActive = true;
 
                 const onMove = (evt) => {
                     const curX = evt.clientX || (evt.touches && evt.touches[0].clientX);
@@ -1131,8 +1027,7 @@
                     const currentClickX = (curX - rect.left) / zoomScale;
                     let targetRightXInside = Math.round((currentClickX - box.x) / stepW) * stepW;
                     
-                    let nw = targetRightXInside - targetXInside;
-                    if (nw < stepW) nw = stepW;
+                    let nw = targetRightXInside - targetXInside; if (nw < stepW) nw = stepW;
                     if (targetXInside + nw > box.w) nw = box.w - targetXInside;
 
                     let validW = stepW;
@@ -1140,11 +1035,8 @@
                         if (isNoteOverlapping(box, nid, targetXInside, targetY, w)) break;
                         validW = w;
                     }
-                    nw = validW;
-
-                    newNote.w = nw;
-                    const noteEl = document.getElementById(nid);
-                    if (noteEl) noteEl.style.width = `${nw * zoomScale}px`;
+                    nw = validW; newNote.w = nw;
+                    const noteEl = document.getElementById(nid); if (noteEl) noteEl.style.width = `${nw * zoomScale}px`;
                 };
 
                 const onEnd = () => {
@@ -1163,47 +1055,30 @@
             if(!currentSelectedBoxId || !boxRegistry[currentSelectedBoxId]) return;
             const box = boxRegistry[currentSelectedBoxId]; if(box.part !== currentPart) return;
 
-            const rect = gridEl.getBoundingClientRect();
-            const startXInside = startX - rect.left;
-            const startYInside = startY - rect.top;
+            const rect = gridEl.getBoundingClientRect(); const startXInside = startX - rect.left; const startYInside = startY - rect.top;
+            box.notes.forEach(n => n.selected = false); document.querySelectorAll('.piano-note').forEach(el => el.classList.remove('selected'));
 
-            box.notes.forEach(n => n.selected = false);
-            document.querySelectorAll('.piano-note').forEach(el => el.classList.remove('selected'));
-
-            const marquee = document.createElement('div');
-            marquee.classList.add('selection-marquee');
-            gridEl.appendChild(marquee);
+            const marquee = document.createElement('div'); marquee.classList.add('selection-marquee'); gridEl.appendChild(marquee);
 
             const onMove = (evt) => {
                 const curX = evt.clientX || (evt.touches && evt.touches[0].clientX);
                 const curY = evt.clientY || (evt.touches && evt.touches[0].clientY);
                 if (curX === undefined || curY === undefined) return;
 
-                const curXInside = curX - rect.left;
-                const curYInside = curY - rect.top;
+                const curXInside = curX - rect.left; const curYInside = curY - rect.top;
+                const left = Math.min(startXInside, curXInside); const top = Math.min(startYInside, curYInside);
+                const width = Math.abs(startXInside - curXInside); const height = Math.abs(startYInside - curYInside);
 
-                const left = Math.min(startXInside, curXInside);
-                const top = Math.min(startYInside, curYInside);
-                const width = Math.abs(startXInside - curXInside);
-                const height = Math.abs(startYInside - curYInside);
-
-                marquee.style.left = `${left}px`;
-                marquee.style.top = `${top}px`;
-                marquee.style.width = `${width}px`;
-                marquee.style.height = `${height}px`;
+                marquee.style.left = `${left}px`; marquee.style.top = `${top}px`;
+                marquee.style.width = `${width}px`; marquee.style.height = `${height}px`;
 
                 let rowH = currentPart === 'drum' ? 40 : 20;
                 box.notes.forEach(n => {
-                    const nLeft = (box.x + n.x) * zoomScale;
-                    const nTop = n.y * rowH + 2;
-                    const nRight = nLeft + n.w * zoomScale;
-                    const nBottom = nTop + rowH - 4;
-
+                    const nLeft = (box.x + n.x) * zoomScale; const nTop = n.y * rowH + 2;
+                    const nRight = nLeft + n.w * zoomScale; const nBottom = nTop + rowH - 4;
                     const isIntersect = !(nLeft > left + width || nRight < left || nTop > top + height || nBottom < top);
                     n.selected = isIntersect;
-                    
-                    const nEl = document.getElementById(n.id);
-                    if (nEl) nEl.classList.toggle('selected', isIntersect);
+                    const nEl = document.getElementById(n.id); if (nEl) nEl.classList.toggle('selected', isIntersect);
                 });
             };
 
@@ -1252,21 +1127,13 @@
 
         gridEl.addEventListener('mousedown', (e) => {
             if(e.button !== 0) return;
-            if (currentTool === 'pencil') {
-                handleGridNewNoteStart(e.clientX, e.clientY);
-            } else if (currentTool === 'select') {
-                handleGridMarqueeSelect(e.clientX, e.clientY);
-            }
+            if (currentTool === 'pencil') { handleGridNewNoteStart(e.clientX, e.clientY); } 
+            else if (currentTool === 'select') { handleGridMarqueeSelect(e.clientX, e.clientY); }
         });
         gridEl.addEventListener('touchstart', (e) => {
             if(e.touches.length === 0) return;
-            if (currentTool === 'pencil') {
-                e.preventDefault(); 
-                handleGridNewNoteStart(e.touches[0].clientX, e.touches[0].clientY);
-            } else if (currentTool === 'select') {
-                e.preventDefault();
-                handleGridMarqueeSelect(e.touches[0].clientX, e.touches[0].clientY);
-            }
+            if (currentTool === 'pencil') { e.preventDefault(); handleGridNewNoteStart(e.touches[0].clientX, e.touches[0].clientY); } 
+            else if (currentTool === 'select') { e.preventDefault(); handleGridMarqueeSelect(e.touches[0].clientX, e.touches[0].clientY); }
         }, { passive: false });
 
         document.querySelectorAll('.track-row').forEach(row => {
@@ -1292,9 +1159,7 @@
             else { isPlaying = true; btn.innerText = '⏸一時停止'; lastFrameTime = performance.now(); requestAnimationFrame(playLoop); }
         }
         document.getElementById('btn-play').addEventListener('click', togglePlay);
-        document.getElementById('btn-stop').addEventListener('click', () => {
-            isPlaying = false; document.getElementById('btn-play').innerText = '▶再生'; playX = 0; updatePlayheadUI();
-        });
+        document.getElementById('btn-stop').addEventListener('click', () => { isPlaying = false; document.getElementById('btn-play').innerText = '▶再生'; playX = 0; updatePlayheadUI(); });
         document.getElementById('btn-reset').addEventListener('click', () => { playX = 0; updatePlayheadUI(); });
 
         function playLoop(timestamp) {
@@ -1302,9 +1167,7 @@
             let delta = timestamp - lastFrameTime; lastFrameTime = timestamp;
             let bpm = parseFloat(document.getElementById('tempo').value) || 120;
             
-            let pxPerMs = (80 * bpm) / (60 * 1000);
-            let prevX = playX; playX += delta * pxPerMs;
-
+            let pxPerMs = (80 * bpm) / (60 * 1000); let prevX = playX; playX += delta * pxPerMs;
             const maxW = currentMaxBars * 320; if(playX >= maxW) { playX = 0; }
             updatePlayheadUI();
 
@@ -1324,21 +1187,14 @@
         const resizer = document.getElementById('editor-resizer');
         resizer.addEventListener('mousedown', (e) => {
             e.preventDefault();
-            const onMove = (evt) => {
-                let h = window.innerHeight - evt.clientY; if(h < 120) h = 120; if(h > 600) h = 600;
-                document.documentElement.style.setProperty('--editor-height', `${h}px`);
-            };
+            const onMove = (evt) => { let h = window.innerHeight - evt.clientY; if(h < 120) h = 120; if(h > 600) h = 600; document.documentElement.style.setProperty('--editor-height', `${h}px`); };
             const onEnd = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onEnd); };
             window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onEnd);
         });
 
         function strToBytes(str) { return Array.from(str).map(c => c.charCodeAt(0)); }
         function encodeNum(num, len) { let arr = []; for(let i=len-1; i>=0; i--) { arr.push((num >> (i*8)) & 0xff); } return arr; }
-        function encodeVLQ(num) {
-            let out = []; let buf = [num & 0x7f]; num = num >> 7;
-            while(num > 0) { buf.push((num & 0x7f) | 0x80); num = num >> 7; }
-            return buf.reverse();
-        }
+        function encodeVLQ(num) { let out = []; let buf = [num & 0x7f]; num = num >> 7; while(num > 0) { buf.push((num & 0x7f) | 0x80); num = num >> 7; } return buf.reverse(); }
 
         document.getElementById('btn-export-midi').addEventListener('click', () => {
             const bpm = parseFloat(document.getElementById('tempo').value) || 120; const ppq = 96; 
@@ -1357,13 +1213,10 @@
                 Object.values(boxRegistry).forEach(box => {
                     if(box.part !== partName) return;
                     box.notes.forEach(n => {
-                        let absX = box.x + n.x;
-                        let startTick = Math.round((absX / 320) * ppq * 4);
-                        let endTick = Math.round(((absX + n.w) / 320) * ppq * 4);
+                        let absX = box.x + n.x; let startTick = Math.round((absX / 320) * ppq * 4); let endTick = Math.round(((absX + n.w) / 320) * ppq * 4);
                         let midiPitch = 60;
-                        if(partName === 'drum') {
-                            if(n.y === 3) midiPitch = 36; else if(n.y === 2) midiPitch = 38; else if(n.y === 1) midiPitch = 42; else midiPitch = 46;
-                        } else { midiPitch = 12 * 4 + (totalKeys - 1 - n.y); }
+                        if(partName === 'drum') { if(n.y === 3) midiPitch = 36; else if(n.y === 2) midiPitch = 38; else if(n.y === 1) midiPitch = 42; else midiPitch = 46; } 
+                        else { midiPitch = 12 * 4 + (totalKeys - 1 - n.y); }
                         rawNotes.push({ tick: startTick, type: 'on', pitch: midiPitch }); rawNotes.push({ tick: endTick, type: 'off', pitch: midiPitch });
                     });
                 });
@@ -1377,8 +1230,7 @@
                 trackEvents.push({ time: 0, bytes: [0xff, 0x2f, 0x00] });
 
                 let trackBody = []; trackEvents.forEach(e => { trackBody = trackBody.concat(encodeVLQ(e.time), e.bytes); });
-                let trackChunk = [].concat(strToBytes('MTrk'), encodeNum(trackBody.length, 4), trackBody);
-                tracksBinary = tracksBinary.concat(trackChunk);
+                let trackChunk = [].concat(strToBytes('MTrk'), encodeNum(trackBody.length, 4), trackBody); tracksBinary = tracksBinary.concat(trackChunk);
             });
 
             const blob = new Blob([new Uint8Array(headerChunk.concat(tracksBinary))], { type: 'audio/midi' });
