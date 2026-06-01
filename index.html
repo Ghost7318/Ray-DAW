@@ -207,40 +207,6 @@
         @media screen and (max-width: 767px) and (orientation: landscape) {
             #orientation-alert { display: flex; }
         }
-
-/* ==========================================
-   スマホ版：画面固定 ＆ 特定エリアのみスクロール化
-   ========================================== */
-@media screen and (max-width: 768px) {
-    /* 1. 画面全体のスクロールや、スマホ特有の引っ張りバウンスを完全に禁止 */
-    html, body {
-        overflow: hidden !important;
-        position: fixed;
-        width: 100%;
-        height: 100%;
-    }
-
-    /* 2. 「パート名」のエリアだけを縦スクロール可能にする */
-    /* ※実際のクラス名が .part-list などの場合は、下のクラス名を書き換えてください */
-    .part-container, 
-    .part-list,
-    [class*="part"] { 
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        -webkit-overflow-scrolling: touch; /* 滑らかなスクロール */
-    }
-
-    /* 3. 「音名」や「楽器名」のエリアだけを縦スクロール可能にする */
-    /* ※実際のクラス名が .piano-container などの場合は、下のクラス名を書き換えてください */
-    .track-list,
-    .piano-sidebar,
-    [class*="piano"],
-    [class*="track"] {
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        -webkit-overflow-scrolling: touch; /* 滑らかなスクロール */
-    }
-}
     </style>
 </head>
 <body>
@@ -1280,4 +1246,96 @@
         updateGridPattern(); setupScrollSyncAndScrubbing();
     </script>
 </body>
+
+<style>
+@media screen and (max-width: 768px) {
+    /* 1. 画面全体の不自然なガタつき・引っ張りを完全に固定 */
+    html, body {
+        overflow: hidden !important;
+        position: fixed !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    /* 2. 固定されている要素のタッチ制限を解除 */
+    .keyboard,
+    .track-header,
+    .editor-ruler-offset {
+        touch-action: auto !important;
+    }
+
+    /* 3. スクロールコンテナがスマホでも滑らかに動くように指定 */
+    .piano-roll,
+    .timeline {
+        overflow: auto !important;
+        -webkit-overflow-scrolling: touch !important; /* iOSの慣性スクロール */
+    }
+}
+</style>
+
+<script>
+(function() {
+    // スマホでのスクロールを強制的に中継・補助する関数
+    function setupMobileScroll(touchElement, scrollContainer) {
+        if (!touchElement || !scrollContainer) return;
+
+        let startX = 0, startY = 0;
+        let startScrollLeft = 0, startScrollTop = 0;
+        let isTouching = false;
+
+        touchElement.addEventListener('touchstart', function(e) {
+            // 指1本でのタッチのみ処理
+            if (e.touches.length === 1) {
+                isTouching = true;
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                startScrollLeft = scrollContainer.scrollLeft;
+                startScrollTop = scrollContainer.scrollTop;
+            }
+        }, { passive: true });
+
+        touchElement.addEventListener('touchmove', function(e) {
+            if (!isTouching || e.touches.length !== 1) return;
+
+            // 指を動かした距離を計算
+            const diffX = e.touches[0].clientX - startX;
+            const diffY = e.touches[0].clientY - startY;
+
+            // 親のコンテナを、指の動きに合わせて縦・横同時にスクロールさせる
+            scrollContainer.scrollLeft = startScrollLeft - diffX;
+            scrollContainer.scrollTop = startScrollTop - diffY;
+        }, { passive: true });
+
+        touchElement.addEventListener('touchend', function() {
+            isTouching = false;
+        }, { passive: true });
+    }
+
+    // 画面の読み込みが完了したら実行
+    function initScrollFix() {
+        // ①「音名（鍵盤）」の上でスワイプしたとき、ピアノロールを縦横スクロールさせる
+        const keyboard = document.querySelector('.keyboard');
+        const pianoRoll = document.querySelector('.piano-roll');
+        if (keyboard && pianoRoll) {
+            setupMobileScroll(keyboard, pianoRoll);
+        }
+
+        // ②「パート名・楽器名」の上でスワイプしたとき、タイムラインを縦横スクロールさせる
+        const trackHeaders = document.querySelectorAll('.track-header');
+        const timeline = document.querySelector('.timeline');
+        if (trackHeaders.length > 0 && timeline) {
+            trackHeaders.forEach(function(header) {
+                setupMobileScroll(header, timeline);
+            });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initScrollFix);
+    } else {
+        initScrollFix();
+    }
+})();
+</script>
+
 </html>
