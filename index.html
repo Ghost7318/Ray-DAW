@@ -207,6 +207,26 @@
         @media screen and (max-width: 767px) and (orientation: landscape) {
             #orientation-alert { display: flex; }
         }
+
+/* スマホ版（画面幅が狭い時）のスクロール制御 */
+@media screen and (max-width: 768px) {
+    /* 1. 画面全体のスクロールを完全に禁止する */
+    html, body {
+        overflow: hidden !important;
+        position: fixed;
+        width: 100%;
+        height: 100%;
+    }
+
+    /* 2. 音名や楽器名が書いてあるエリア（コンテナ）だけをスクロール可能にする */
+    /* ※以下の「.scrollable-area-class」を、実際のコードのクラス名に書き換えてください */
+    .scrollable-area-class {
+        overflow-y: auto !important;         /* 縦スクロールを許可 */
+        -webkit-overflow-scrolling: touch;  /* スマホでのスクロールを滑らかにする */
+        height: calc(100vh - 60px);          /* ヘッダー等の高さを引いた残りの画面幅に固定（数値は要調整） */
+    }
+}
+
     </style>
 </head>
 <body>
