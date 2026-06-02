@@ -1245,6 +1245,70 @@
 
         updateGridPattern(); setupScrollSyncAndScrubbing();
     </script>
+
+<style>
+@media screen and (max-width: 768px) {
+    /* パート名エリアのブラウザ独自のタッチロックを解除し、JSで制御できるようにする */
+    .track-header {
+        touch-action: none !important;
+    }
+    /* 楽器選択のプルダウンメニューだけはスマホでも通常通りタップできるようにする */
+    .track-header select {
+        touch-action: auto !important;
+    }
+}
+</style>
+
+<script>
+(function() {
+    window.addEventListener('DOMContentLoaded', () => {
+        const timeline = document.getElementById('timeline-area');
+        if (!timeline) return;
+
+        let startX = 0;
+        let startY = 0;
+        let startScrollLeft = 0;
+        let startScrollTop = 0;
+        let isTouching = false;
+
+        // アレンジ画面（タイムライン）全体でタッチを監視
+        timeline.addEventListener('touchstart', (e) => {
+            // タッチされた要素が「パート名エリア（.track-header）」またはその子要素で、かつプルダウン以外の場合
+            const header = e.target.closest('.track-header');
+            if (header && e.target.tagName !== 'SELECT') {
+                isTouching = true;
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                startScrollLeft = timeline.scrollLeft;
+                startScrollTop = timeline.scrollTop;
+            }
+        }, { passive: true });
+
+        timeline.addEventListener('touchmove', (e) => {
+            if (!isTouching || e.touches.length !== 1) return;
+
+            // 指の移動距離を計算
+            const diffX = e.touches[0].clientX - startX;
+            const diffY = e.touches[0].clientY - startY;
+
+            // タイムラインのスクロール位置を指の動きに完全に同期（縦・横同時）
+            timeline.scrollLeft = startScrollLeft - diffX;
+            timeline.scrollTop = startScrollTop - diffY;
+
+            // スマホ特有の画面全体のバウンス（不自然なガタつき）を防止
+            if (e.cancelable) {
+                e.preventDefault();
+            }
+        }, { passive: false }); // preventDefaultを使用するため、ここをfalseにするのがポイントです
+
+        // タッチが終了した時のリセット処理
+        const endTouch = () => { isTouching = false; };
+        timeline.addEventListener('touchend', endTouch, { passive: true });
+        timeline.addEventListener('touchcancel', endTouch, { passive: true });
+    });
+})();
+</script>
+
 </body>
 
 <style>
